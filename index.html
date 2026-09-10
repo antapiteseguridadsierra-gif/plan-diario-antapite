@@ -6,14 +6,15 @@
 <title>Plan Diario · Sierra Antapite</title>
 <style>
   :root{
-    --stage:#D9EEF8;
-    --paper:#FBFAF6;
-    --ink:#1B2A34;
-    --ink-soft:#51697A;
-    --line:#D8E6EE;
+    --stage:#BFE3F5;
+    --stage-deep:#8FCBE8;
+    --paper:#FCFDFE;
+    --ink:#122534;
+    --ink-soft:#4E6B7E;
+    --line:#D3E7F1;
     --amber:#CC8A2E;
     --amber-deep:#8C5A16;
-    --slate:#4C6070;
+    --slate:#2E5A78;
     --sage:#6E8049;
     --radius:4px;
   }
@@ -21,7 +22,8 @@
   html{ -webkit-text-size-adjust:100%; }
   body{
     margin:0;
-    background:var(--stage);
+    background:linear-gradient(180deg,var(--stage) 0%,var(--stage-deep) 100%);
+    background-attachment:fixed;
     color:var(--ink);
     font-family:'Arial Narrow','Liberation Sans Narrow',Arial,Helvetica,sans-serif;
     font-size:16.5px;
@@ -34,11 +36,11 @@
   :focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
 
   /* ---------- Fondo animado ---------- */
-  .fondo-animado{ position:fixed; inset:0; overflow:hidden; z-index:-1; background:var(--stage); }
-  .fondo-animado .blob{ position:absolute; border-radius:50%; filter:blur(95px); opacity:.26; }
+  .fondo-animado{ position:fixed; inset:0; overflow:hidden; z-index:-1; background:linear-gradient(180deg,var(--stage) 0%,var(--stage-deep) 100%); }
+  .fondo-animado .blob{ position:absolute; border-radius:50%; filter:blur(100px); opacity:.30; }
   .blob.b1{ width:540px; height:540px; background:var(--amber); top:-140px; left:-110px; animation:flotar1 26s ease-in-out infinite; }
-  .blob.b2{ width:620px; height:620px; background:var(--slate); bottom:-170px; right:-150px; animation:flotar2 32s ease-in-out infinite; }
-  .blob.b3{ width:440px; height:440px; background:var(--sage); top:38%; left:58%; animation:flotar3 22s ease-in-out infinite; }
+  .blob.b2{ width:620px; height:620px; background:#ffffff; bottom:-170px; right:-150px; animation:flotar2 32s ease-in-out infinite; }
+  .blob.b3{ width:440px; height:440px; background:#ffffff; top:38%; left:58%; animation:flotar3 22s ease-in-out infinite; }
   @keyframes flotar1{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(60px,80px) scale(1.15);} }
   @keyframes flotar2{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-70px,-50px) scale(1.1);} }
   @keyframes flotar3{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-50px,60px) scale(1.2);} }
@@ -110,21 +112,47 @@
 
   /* ---------- Encabezado ---------- */
   header.plan{
-    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px;
-    padding:22px 26px 20px; color:var(--ink);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:18px;
+    padding:24px 30px; color:var(--ink);
+    background:linear-gradient(135deg,#0F2A3D 0%,#1B4863 55%,#1E5A79 100%);
+    border-radius:var(--radius) var(--radius) 0 0;
+    position:relative; overflow:hidden;
   }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand svg{ width:48px; height:48px; flex:none; }
-  .brand-text .name{ font-size:13px; letter-spacing:.1em; color:var(--amber-deep); font-weight:700; }
-  .brand-text h1{ font-size:clamp(24px,4vw,30px); font-weight:700; color:var(--ink); }
+  header.plan::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(120deg,rgba(204,138,46,.16),transparent 55%);
+    pointer-events:none;
+  }
+  .brand{ display:flex; align-items:center; gap:14px; position:relative; z-index:1; }
+  .brand-icon{
+    width:50px; height:50px; flex:none; border-radius:10px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand svg{ width:30px; height:30px; flex:none; }
+  .brand-text .name{ font-size:11.5px; letter-spacing:.18em; color:var(--amber); font-weight:700; text-transform:uppercase; }
+  .brand-text h1{ font-size:clamp(22px,3.4vw,27px); font-weight:700; color:#fff; letter-spacing:.005em; }
+  .brand-text .subtitulo{ font-size:12.5px; color:rgba(255,255,255,.62); margin-top:2px; letter-spacing:.02em; }
 
-  .fields-top{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-end; }
-  .field-inline label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:4px; }
-  .field-inline input{
-    border:none; border-bottom:1.5px solid rgba(27,42,52,.35); background:transparent;
-    padding:4px 2px; font-size:17px; font-weight:700; min-width:150px; color:var(--ink);
+  .fields-top{
+    display:flex; gap:0; flex-wrap:wrap; align-items:stretch; position:relative; z-index:1;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16);
+    border-radius:var(--radius); backdrop-filter:blur(6px); overflow:hidden;
   }
-  .field-inline input:focus{ border-bottom-color:var(--amber); }
+  .field-inline{ padding:10px 20px; min-width:170px; }
+  .field-inline + .field-inline{ border-left:1px solid rgba(255,255,255,.16); }
+  .field-inline label{
+    display:block; font-size:10.5px; color:rgba(255,255,255,.6); margin-bottom:5px;
+    letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+  }
+  .field-inline input{
+    border:none; background:transparent;
+    padding:2px 0; font-size:16.5px; font-weight:700; width:100%; color:#fff;
+  }
+  .field-inline input::placeholder{ color:rgba(255,255,255,.45); font-weight:500; }
+  .field-inline input[type="date"]{ color-scheme:dark; }
+  .field-inline input:focus{ outline:none; }
+  .field-inline:focus-within{ background:rgba(255,255,255,.06); }
 
   /* ---------- Hoja ---------- */
   .sheet{
@@ -194,20 +222,55 @@
   .vaso.bloqueado{ pointer-events:none; }
   .agua-txt{ font-size:13.5px; color:var(--ink-soft); margin-left:4px; }
 
-  .horario-lista{ display:flex; flex-direction:column; }
-  .hora-fila{ display:grid; grid-template-columns:82px 1fr; gap:12px; align-items:center; padding:8px 0; border-bottom:1px dotted var(--line); }
+  /* ---------- Horario: línea de tiempo ejecutiva ---------- */
+  .horario-lista{ display:flex; flex-direction:column; position:relative; padding-left:4px; }
+  .horario-lista::before{
+    content:""; position:absolute; left:57px; top:6px; bottom:6px; width:1px;
+    background:linear-gradient(180deg,var(--line),var(--line) 92%,transparent);
+  }
+  .hora-fila{
+    display:grid; grid-template-columns:46px 18px 1fr; gap:0 12px; align-items:center;
+    padding:6px 0; border-radius:6px; position:relative; transition:background .15s ease;
+  }
+  .hora-fila:hover{ background:rgba(46,90,120,.05); }
 
-  /* Al exportar (PDF/foto) se arma como una tira angosta tipo
-     celular, y las filas/secciones vacías se ocultan solas */
   #hojaPdf.modo-exportacion{ max-width:480px; margin:0 auto; }
   #hojaPdf.modo-exportacion .grid{ grid-template-columns:1fr; }
   #hojaPdf.modo-exportacion .col-right{ border-left:none; border-top:1px solid var(--line); }
-  .hora-fila:last-child{ border-bottom:none; }
-  .hora-fila .etiqueta{ font-size:13.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; font-weight:700; }
-  .hora-fila input{ border:none; border-bottom:1px solid transparent; background:transparent; padding:5px 2px; font-size:15px; }
-  .hora-fila input:focus{ border-bottom-color:var(--slate); }
-  .hora-fila.actual{ background:rgba(204,138,46,.14); border-radius:var(--radius); padding-left:8px; margin-left:-8px; }
-  .hora-fila.actual .etiqueta{ color:var(--amber-deep); }
+
+  .hora-fila .etiqueta{
+    font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums; font-weight:700;
+    text-align:right; letter-spacing:-.01em; padding-right:2px;
+  }
+  .hora-fila .punto{
+    width:9px; height:9px; border-radius:50%; background:var(--paper);
+    border:2px solid var(--line); justify-self:center; z-index:1; flex:none;
+  }
+  .hora-fila .campo-wrap{
+    display:flex; align-items:center; gap:6px; border-bottom:1px solid transparent;
+    padding:6px 2px 6px 10px; border-radius:4px;
+  }
+  .hora-fila .campo-wrap:focus-within{ background:#fff; box-shadow:0 0 0 1.5px var(--slate) inset; }
+  .hora-fila input{
+    border:none; background:transparent; padding:0; font-size:14.5px; flex:1; min-width:0; color:var(--ink);
+  }
+  .hora-fila input::placeholder{ color:#A9BAC4; font-style:italic; }
+  .hora-fila .limpiar-hora{
+    flex:none; border:none; background:none; color:#B7C4CC; font-size:14px; cursor:pointer;
+    width:18px; height:18px; line-height:1; border-radius:50%; display:none; align-items:center; justify-content:center;
+  }
+  .hora-fila .campo-wrap:hover .limpiar-hora,
+  .hora-fila .campo-wrap:focus-within .limpiar-hora{ display:inline-flex; }
+  .hora-fila .limpiar-hora:hover{ color:#A23B28; background:rgba(170,51,51,.1); }
+
+  .hora-fila.tiene-texto .punto{ background:var(--slate); border-color:var(--slate); }
+  .hora-fila.tiene-texto .etiqueta{ color:var(--ink); }
+  .hora-fila.tiene-texto .campo-wrap{ background:rgba(46,90,120,.045); }
+  .hora-fila.tiene-texto input{ font-weight:600; }
+
+  .hora-fila.actual .etiqueta{ color:var(--amber-deep); font-weight:800; }
+  .hora-fila.actual .punto{ background:var(--amber); border-color:var(--amber); box-shadow:0 0 0 4px rgba(204,138,46,.18); }
+  .hora-fila.actual .campo-wrap{ background:rgba(204,138,46,.09); }
 
   .firma{ font-size:13.5px; color:var(--ink-soft); padding:14px 30px 20px; border-top:1px solid var(--line); }
   .firma strong{ color:var(--ink); font-weight:700; }
@@ -297,20 +360,23 @@
 
     <header class="plan">
       <div class="brand">
-        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="36" cy="12" r="5" fill="#CC8A2E"/>
-          <path d="M2 38L15 16L23 28L29 18L46 38H2Z" fill="#2C3E4C"/>
-          <path d="M23 28L29 18L46 38H23V28Z" fill="#7FA6BD"/>
-        </svg>
+        <div class="brand-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="36" cy="12" r="5" fill="#CC8A2E"/>
+            <path d="M2 38L15 16L23 28L29 18L46 38H2Z" fill="#DCE8EF"/>
+            <path d="M23 28L29 18L46 38H23V28Z" fill="#7FA6BD"/>
+          </svg>
+        </div>
         <div class="brand-text">
-          <div class="name">SIERRA ANTAPITE</div>
+          <div class="name">Sierra Antapite</div>
           <h1>Plan diario</h1>
+          <div class="subtitulo">Gestión ejecutiva de la jornada</div>
         </div>
       </div>
       <div class="fields-top">
         <div class="field-inline">
           <label for="campoNombre">Responsable</label>
-          <input type="text" id="campoNombre" placeholder="Escribe tu nombre completo">
+          <input type="text" id="campoNombre" placeholder="Nombre completo">
         </div>
         <div class="field-inline">
           <label for="campoFecha">Fecha</label>
@@ -366,7 +432,7 @@
 
         <div class="col-right">
           <section class="block" style="padding-top:0;border-top:none;">
-            <h2>Horario</h2>
+            <h2>Horario <span id="horarioContador" style="font-weight:400;color:var(--ink-soft);font-size:12.5px;letter-spacing:0;"></span></h2>
             <div class="horario-lista" id="listaHorario"></div>
           </section>
         </div>
@@ -429,7 +495,7 @@
    CONFIGURACIÓN — pega aquí la URL de tu backend (Google Apps
    Script Web App u otro). Debe empezar con https://
    ========================================================= */
-var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGe6Xr8dxUZk75dfsorcRXHWpHHkpymicn6EctvG0siFMjIOEgwWiI0ldVv3FkVA/exec";
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-uE1FRaChZzoXfylNFKmHAWxKclPXYcvU6TvUq97aOG0Qz0Zc_Yv9_TUdSM3DvnaN/exec";
 
 var state = plantillaVacia();
 var modoEdicion = true;
@@ -583,23 +649,61 @@ function renderHorario(){
   var cont = document.getElementById("listaHorario");
   cont.innerHTML = "";
   var horaActual = new Date().getHours();
+
   state.horario.forEach(function(fila){
     var div = document.createElement("div");
-    div.className = "hora-fila" + (fila.hora24 === horaActual ? " actual" : "");
+    actualizarClaseFila(div, fila, horaActual);
 
     var etiqueta = document.createElement("div");
     etiqueta.className = "etiqueta";
     etiqueta.textContent = fila.etiqueta;
 
+    var punto = document.createElement("div");
+    punto.className = "punto";
+
+    var wrap = document.createElement("div");
+    wrap.className = "campo-wrap";
+
     var input = document.createElement("input");
     input.type = "text";
     input.value = fila.texto;
-    input.placeholder = "—";
-    input.addEventListener("input", function(){ fila.texto = input.value; });
+    input.placeholder = "Agregar actividad…";
+    input.addEventListener("input", function(){
+      fila.texto = input.value;
+      actualizarClaseFila(div, fila, new Date().getHours());
+      renderContadorHorario();
+    });
 
-    div.appendChild(etiqueta); div.appendChild(input);
+    var limpiar = document.createElement("button");
+    limpiar.type = "button";
+    limpiar.className = "limpiar-hora";
+    limpiar.innerHTML = "&times;";
+    limpiar.title = "Borrar";
+    limpiar.addEventListener("click", function(){
+      fila.texto = "";
+      input.value = "";
+      actualizarClaseFila(div, fila, new Date().getHours());
+      renderContadorHorario();
+      input.focus();
+    });
+
+    wrap.appendChild(input); wrap.appendChild(limpiar);
+    div.appendChild(etiqueta); div.appendChild(punto); div.appendChild(wrap);
     cont.appendChild(div);
   });
+
+  renderContadorHorario();
+}
+function actualizarClaseFila(div, fila, horaActual){
+  div.className = "hora-fila"
+    + (fila.hora24 === horaActual ? " actual" : "")
+    + (fila.texto.trim() ? " tiene-texto" : "");
+}
+function renderContadorHorario(){
+  var el = document.getElementById("horarioContador");
+  if(!el) return;
+  var llenos = state.horario.filter(function(f){ return f.texto.trim(); }).length;
+  el.textContent = llenos ? ("· " + llenos + " " + (llenos === 1 ? "actividad" : "actividades")) : "";
 }
 
 /* ---------------------------------------------------------
@@ -954,6 +1058,7 @@ function nombreArchivoBase(){ return "Plan-Diario-" + state.fecha; }
 var elementosAjustadosExportacion = [];
 
 function prepararExportacion(){
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
   document.getElementById("hojaPdf").classList.add("modo-exportacion");
   elementosAjustadosExportacion = [];
 
@@ -996,7 +1101,7 @@ function prepararExportacion(){
   }
 
   // Ocultar controles de edición aunque el formulario esté desbloqueado
-  document.querySelectorAll("#hojaPdf .agregar-fila, #hojaPdf .borrar").forEach(function(el){
+  document.querySelectorAll("#hojaPdf .agregar-fila, #hojaPdf .borrar, #hojaPdf .limpiar-hora").forEach(function(el){
     if(el.style.display !== "none"){ el.style.display = "none"; elementosAjustadosExportacion.push(el); }
   });
 
