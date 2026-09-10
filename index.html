@@ -82,6 +82,7 @@
   .badge{ font-size:13px; font-weight:700; padding:6px 13px; border-radius:20px; letter-spacing:.02em; }
   .badge.borrador{ background:rgba(76,96,112,.15); color:#37505F; border:1px solid rgba(55,80,95,.35); }
   .badge.enviado{ background:rgba(110,128,73,.18); color:#3F5A28; border:1px solid rgba(63,90,40,.35); }
+  .badge.pendiente{ background:rgba(204,138,46,.2); color:#8C5A16; border:1px solid rgba(140,90,22,.4); }
 
   .btn{
     border-radius:var(--radius); padding:10px 16px; font-size:14.5px; font-weight:700; cursor:pointer;
@@ -247,6 +248,8 @@
   <div class="toolbar-acciones">
     <div class="grupo grupo-estado">
       <span id="badgeEstado" class="badge borrador">Borrador</span>
+      <span id="indicadorCola" class="badge pendiente" style="display:none;"></span>
+      <button type="button" class="btn btn-outline" id="btnCargarDia" onclick="cargarRegistroActual()">🔄 Cargar este día</button>
     </div>
     <div class="grupo">
       <button type="button" id="btnEditar" class="btn btn-outline" onclick="editarPlan()">✎ Editar</button>
@@ -287,7 +290,7 @@
       <div class="fields-top">
         <div class="field-inline">
           <label for="campoNombre">Responsable</label>
-          <input type="text" id="campoNombre" value="Leoncio De la Cruz Santolalla">
+          <input type="text" id="campoNombre" placeholder="Escribe tu nombre completo">
         </div>
         <div class="field-inline">
           <label for="campoFecha">Fecha</label>
@@ -350,7 +353,7 @@
 
       </div>
 
-      <div class="firma">Firmado por <strong id="firmaNombre">Leoncio De la Cruz Santolalla</strong></div>
+      <div class="firma">Firmado por <strong id="firmaNombre">—</strong></div>
     </div>
   </div>
 </div>
@@ -377,7 +380,7 @@
    CONFIGURACIÓN — pega aquí la URL de tu backend (Google Apps
    Script Web App u otro). Debe empezar con https://
    ========================================================= */
-var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOfERsbdpXg-EJrArvmJvIp4vNGHw4_uAEIW5ZuQBl7RX56iWM97y6uxyd57NpYnwN/exec";
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGe6Xr8dxUZk75dfsorcRXHWpHHkpymicn6EctvG0siFMjIOEgwWiI0ldVv3FkVA/exec";
 
 var state = plantillaVacia();
 var modoEdicion = true;
@@ -386,7 +389,7 @@ var cargandoDesdeCodigo = false;
 function plantillaVacia(){
   return {
     fecha: hoyISO(),
-    nombre: "Leoncio De la Cruz Santolalla",
+    nombre: "",
     frase: "",
     gratitud: "",
     prioridades: [
@@ -592,7 +595,7 @@ document.getElementById("campoFrase").addEventListener("input", function(e){ sta
 document.getElementById("campoGratitud").addEventListener("input", function(e){ state.gratitud = e.target.value; });
 document.getElementById("campoNotas").addEventListener("input", function(e){ state.notas = e.target.value; });
 document.getElementById("campoFecha").addEventListener("change", function(e){
-  if(!cargandoDesdeCodigo) cambiarFecha(e.target.value);
+  if(!cargandoDesdeCodigo) cargarRegistroActual();
 });
 
 /* ---------------------------------------------------------
@@ -610,12 +613,84 @@ function scriptConfigurado(){
 }
 
 /* ---------------------------------------------------------
-   Carga por fecha
+   Cola de sincronización — permite llenar el formulario sin
+   internet; lo guardado se envía solo cuando vuelva la conexión
 --------------------------------------------------------- */
-function normalizar(registro, fecha){
+var COLA_KEY = "plan-antapite:cola-sync";
+function normalizarNombreLocal(n){ return (n || "").trim().toLowerCase(); }
+
+function leerCola(){
+  try{ return JSON.parse(localStorage.getItem(COLA_KEY) || "[]"); }
+  catch(err){ return []; }
+}
+function escribirCola(cola){
+  localStorage.setItem(COLA_KEY, JSON.stringify(cola));
+  actualizarIndicadorCola();
+}
+function encolar(estadoAGuardar){
+  var clave = estadoAGuardar.fecha + "|" + normalizarNombreLocal(estadoAGuardar.nombre);
+  var cola = leerCola().filter(function(item){
+    return (item.fecha + "|" + normalizarNombreLocal(item.nombre)) !== clave;
+  });
+  cola.push(estadoAGuardar);
+  escribirCola(cola);
+}
+function quitarDeCola(fecha, nombre){
+  var clave = fecha + "|" + normalizarNombreLocal(nombre);
+  var cola = leerCola().filter(function(item){
+    return (item.fecha + "|" + normalizarNombreLocal(item.nombre)) !== clave;
+  });
+  escribirCola(cola);
+}
+function actualizarIndicadorCola(){
+  var el = document.getElementById("indicadorCola");
+  if(!el) return;
+  var cantidad = leerCola().length;
+  if(cantidad > 0){
+    el.style.display = "";
+    el.textContent = "⏳ " + cantidad + (cantidad === 1 ? " plan sin sincronizar" : " planes sin sincronizar");
+  } else {
+    el.style.display = "none";
+  }
+}
+function sincronizarCola(){
+  if(!scriptConfigurado()) return;
+  var pendientes = leerCola();
+  if(!pendientes.length) return;
+  mostrarEstado("Sincronizando " + pendientes.length + " plan(es) pendientes…");
+  var siguiente = function(){
+    if(!pendientes.length){
+      mostrarEstado("Todo sincronizado ✓");
+      cargarHistorial();
+      return;
+    }
+    var item = pendientes.shift();
+    fetch(SCRIPT_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify(item)
+    }).then(function(res){ return res.json(); }).then(function(data){
+      if(data.ok) quitarDeCola(item.fecha, item.nombre);
+      siguiente();
+    }).catch(function(){ siguiente(); });
+  };
+  siguiente();
+}
+window.addEventListener("online", function(){ sincronizarCola(); });
+
+/* ---------------------------------------------------------
+   Carga por fecha + responsable
+   (varias personas pueden usar el mismo formulario: cada
+   combinación fecha+nombre es un registro independiente)
+--------------------------------------------------------- */
+function claveLocal(fecha, nombre){
+  return "plan-antapite:" + fecha + "|" + (nombre || "").trim().toLowerCase();
+}
+
+function normalizar(registro, fecha, nombre){
   return {
     fecha: fecha,
-    nombre: registro.nombre || "Leoncio De la Cruz Santolalla",
+    nombre: registro.nombre || nombre || "",
     frase: registro.frase || "",
     gratitud: registro.gratitud || "",
     prioridades: (registro.prioridades && registro.prioridades.length) ? registro.prioridades : plantillaVacia().prioridades,
@@ -628,22 +703,38 @@ function normalizar(registro, fecha){
   };
 }
 
-function cambiarFecha(fecha){
+function cargarRegistroActual(){
+  var fecha = document.getElementById("campoFecha").value || hoyISO();
+  var nombre = document.getElementById("campoNombre").value.trim();
+
+  if(!nombre){
+    cargandoDesdeCodigo = true;
+    state = Object.assign(plantillaVacia(), { fecha: fecha, nombre: "" });
+    modoEdicion = true;
+    renderTodo();
+    mostrarEstado("Escribe tu nombre para cargar o crear tu plan del día");
+    document.getElementById("selectHistorial").innerHTML = '<option value="">— elegir día —</option>';
+    cargandoDesdeCodigo = false;
+    return;
+  }
+
   cargandoDesdeCodigo = true;
   mostrarEstado("Cargando…");
-  obtenerRegistro(fecha).then(function(registro){
-    state = registro ? normalizar(registro, fecha) : Object.assign(plantillaVacia(), { fecha: fecha });
+  obtenerRegistro(fecha, nombre).then(function(registro){
+    state = registro ? normalizar(registro, fecha, nombre) : Object.assign(plantillaVacia(), { fecha: fecha, nombre: nombre });
     modoEdicion = !state.enviado;
     renderTodo();
-    mostrarEstado(registro ? (state.enviado ? "Día enviado — solo lectura" : "Borrador cargado") : "Día nuevo — sin registros aún");
+    mostrarEstado(registro ? (state.enviado ? "Día enviado — solo lectura" : "Borrador cargado") : "Día nuevo para " + nombre + " — sin registros aún");
+    localStorage.setItem("plan-antapite:ultimo-nombre", nombre);
+    cargarHistorial();
     cargandoDesdeCodigo = false;
   });
 }
 
-function obtenerRegistro(fecha){
+function obtenerRegistro(fecha, nombre){
   return new Promise(function(resolve){
     if(scriptConfigurado()){
-      fetch(SCRIPT_URL + "?action=get&fecha=" + fecha)
+      fetch(SCRIPT_URL + "?action=get&fecha=" + fecha + "&nombre=" + encodeURIComponent(nombre))
         .then(function(res){ return res.json(); })
         .then(function(data){
           if(data.ok && data.registro){ resolve(data.registro); return; }
@@ -654,7 +745,7 @@ function obtenerRegistro(fecha){
       resolveLocal();
     }
     function resolveLocal(){
-      var local = localStorage.getItem("plan-antapite:" + fecha);
+      var local = localStorage.getItem(claveLocal(fecha, nombre));
       resolve(local ? JSON.parse(local) : null);
     }
   });
@@ -679,25 +770,35 @@ function enviarPlan(){
 }
 
 function guardarEnServidor(){
+  if(!state.nombre || !state.nombre.trim()){
+    mostrarEstado("Escribe tu nombre antes de guardar");
+    return Promise.resolve();
+  }
   document.querySelectorAll(".toolbar-acciones button").forEach(function(b){ b.disabled = true; });
-  localStorage.setItem("plan-antapite:" + state.fecha, JSON.stringify(state));
+  localStorage.setItem(claveLocal(state.fecha, state.nombre), JSON.stringify(state));
+  localStorage.setItem("plan-antapite:ultimo-nombre", state.nombre.trim());
 
   var promesa;
   if(scriptConfigurado()){
     mostrarEstado("Guardando en la nube…");
+    var copiaEstado = JSON.parse(JSON.stringify(state));
     promesa = fetch(SCRIPT_URL, {
       method:"POST",
       headers:{ "Content-Type":"text/plain;charset=utf-8" },
       body: JSON.stringify(state)
     }).then(function(res){ return res.json(); }).then(function(data){
       if(data.ok){
+        quitarDeCola(copiaEstado.fecha, copiaEstado.nombre);
         mostrarEstado((state.enviado ? "Enviado y guardado" : "Borrador guardado") + " · " + horaCorta());
         cargarHistorial();
+        sincronizarCola();
       }else{
-        mostrarEstado("Guardado local — hubo un error en la nube");
+        encolar(copiaEstado);
+        mostrarEstado("Guardado en el dispositivo — se sincronizará automáticamente");
       }
     }).catch(function(){
-      mostrarEstado("Guardado local — sin conexión con la nube");
+      encolar(copiaEstado);
+      mostrarEstado("Sin conexión — guardado en el dispositivo, se enviará solo cuando vuelva el internet");
     });
   }else{
     mostrarEstado("Guardado solo en este navegador");
@@ -710,12 +811,18 @@ function guardarEnServidor(){
 }
 
 function eliminarDia(){
-  var confirmar = confirm("Vas a eliminar TODOS los datos del plan del día " + state.fecha + ".\nEsta acción no se puede deshacer. ¿Confirmas?");
+  if(!state.nombre || !state.nombre.trim()){
+    mostrarEstado("Escribe tu nombre primero");
+    return;
+  }
+  var confirmar = confirm("Vas a eliminar TODOS los datos del plan de " + state.nombre + " del día " + state.fecha + ".\nEsta acción no se puede deshacer. ¿Confirmas?");
   if(!confirmar) return;
-  localStorage.removeItem("plan-antapite:" + state.fecha);
+  localStorage.removeItem(claveLocal(state.fecha, state.nombre));
 
+  var nombreActual = state.nombre;
+  var fechaActual = state.fecha;
   var limpiar = function(){
-    state = Object.assign(plantillaVacia(), { fecha: state.fecha });
+    state = Object.assign(plantillaVacia(), { fecha: fechaActual, nombre: nombreActual });
     modoEdicion = true;
     renderTodo();
     mostrarEstado("Día eliminado");
@@ -726,7 +833,7 @@ function eliminarDia(){
     fetch(SCRIPT_URL, {
       method:"POST",
       headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body: JSON.stringify({ action:"delete", fecha: state.fecha })
+      body: JSON.stringify({ action:"delete", fecha: fechaActual, nombre: nombreActual })
     }).then(limpiar).catch(limpiar);
   } else {
     limpiar();
@@ -734,15 +841,20 @@ function eliminarDia(){
 }
 
 /* ---------------------------------------------------------
-   Historial (solo PDF)
+   Historial (solo PDF) — filtrado por responsable, para que
+   cada persona vea únicamente sus propios días
 --------------------------------------------------------- */
 function cargarHistorial(){
-  if(!scriptConfigurado()) return;
-  fetch(SCRIPT_URL + "?action=list")
+  var nombre = document.getElementById("campoNombre").value.trim();
+  var select = document.getElementById("selectHistorial");
+  if(!scriptConfigurado() || !nombre){
+    select.innerHTML = '<option value="">— elegir día —</option>';
+    return;
+  }
+  fetch(SCRIPT_URL + "?action=list&nombre=" + encodeURIComponent(nombre))
     .then(function(res){ return res.json(); })
     .then(function(data){
       if(!data.ok) return;
-      var select = document.getElementById("selectHistorial");
       select.innerHTML = '<option value="">— elegir día —</option>';
       data.fechas.forEach(function(f){
         var opt = document.createElement("option");
@@ -755,17 +867,19 @@ function cargarHistorial(){
 
 function verHistorialPDF(fecha){
   if(!fecha) return;
+  var nombre = document.getElementById("campoNombre").value.trim();
+  if(!nombre) return;
   var estadoRespaldo = JSON.parse(JSON.stringify(state));
   var modoRespaldo = modoEdicion;
   mostrarEstado("Generando PDF de " + fecha + "…");
 
-  obtenerRegistro(fecha).then(function(registro){
+  obtenerRegistro(fecha, nombre).then(function(registro){
     if(!registro){
       mostrarEstado("No hay datos guardados para ese día");
       document.getElementById("selectHistorial").value = "";
       return;
     }
-    state = normalizar(registro, fecha);
+    state = normalizar(registro, fecha, nombre);
     modoEdicion = false;
     renderTodo();
     generarPDF().then(function(){
@@ -922,8 +1036,18 @@ function cerrarModalExito(){
   if(!scriptConfigurado()){
     document.getElementById("configBanner").classList.add("show");
   }
-  cambiarFecha(hoyISO());
-  cargarHistorial();
+  document.getElementById("campoFecha").value = hoyISO();
+  var ultimoNombre = localStorage.getItem("plan-antapite:ultimo-nombre");
+  if(ultimoNombre){ document.getElementById("campoNombre").value = ultimoNombre; }
+  actualizarIndicadorCola();
+  cargarRegistroActual();
+  sincronizarCola();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
 })();
 </script>
 </body>
