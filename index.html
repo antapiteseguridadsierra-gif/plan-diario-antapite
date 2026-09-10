@@ -359,7 +359,7 @@
   <div class="modal-caja">
     <button class="modal-cerrar" onclick="cerrarModalExito()" aria-label="Cerrar">&times;</button>
     <div class="modal-icono">✓</div>
-    <h2>¡BUENA GUARDIA! RECIBID@</h2>
+    <h2>¡BUENA GUARDIA! RECI@</h2>
     <p>Tu plan del <strong id="modalFecha"></strong> quedó registrado. ¿Cómo lo quieres compartir?</p>
     <div class="modal-acciones">
       <button class="btn-compartir" onclick="generarPDF()"><span>📄</span> PDF</button>
@@ -377,7 +377,7 @@
    CONFIGURACIÓN — pega aquí la URL de tu backend (Google Apps
    Script Web App u otro). Debe empezar con https://
    ========================================================= */
-var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhk4JjwdSi9KFsx8Bh9e1cOCJCDTuO-NuYEUrW1xJCNCZFI06qz69hmKxSdVKOQc3L/exec";
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOfERsbdpXg-EJrArvmJvIp4vNGHw4_uAEIW5ZuQBl7RX56iWM97y6uxyd57NpYnwN/exec";
 
 var state = plantillaVacia();
 var modoEdicion = true;
@@ -782,10 +782,35 @@ function verHistorialPDF(fecha){
 --------------------------------------------------------- */
 function nombreArchivoBase(){ return "Plan-Diario-" + state.fecha; }
 
+function sincronizarValoresParaClon(clonedDoc){
+  var originales = document.querySelectorAll("#hojaPdf input, #hojaPdf textarea");
+  var clones = clonedDoc.querySelectorAll("#hojaPdf input, #hojaPdf textarea");
+  originales.forEach(function(original, i){
+    var clone = clones[i];
+    if(!clone) return;
+    if(original.tagName === "TEXTAREA"){
+      clone.textContent = original.value;
+      clone.value = original.value;
+    } else if(original.type === "checkbox"){
+      clone.checked = original.checked;
+      if(original.checked) clone.setAttribute("checked","checked");
+      else clone.removeAttribute("checked");
+    } else {
+      clone.value = original.value;
+      clone.setAttribute("value", original.value);
+    }
+  });
+}
+
 function capturarCanvas(){
   return new Promise(function(resolve){
     setTimeout(function(){
-      html2canvas(document.getElementById("hojaPdf"), { scale:2, backgroundColor:"#D9EEF8", useCORS:true }).then(resolve);
+      html2canvas(document.getElementById("hojaPdf"), {
+        scale:2,
+        backgroundColor:"#D9EEF8",
+        useCORS:true,
+        onclone: sincronizarValoresParaClon
+      }).then(resolve);
     }, 30);
   });
 }
