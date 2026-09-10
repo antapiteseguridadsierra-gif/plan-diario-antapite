@@ -209,7 +209,8 @@
   /* ---------- Modal de éxito ---------- */
   .modal-exito{ position:fixed; inset:0; background:rgba(20,40,55,.42); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
   .modal-exito.show{ display:flex; }
-  .modal-caja{ background:#fff; border-radius:16px; padding:36px 30px 28px; max-width:400px; width:100%; text-align:center; position:relative; box-shadow:0 30px 70px rgba(20,40,55,.32); animation:apareceModal .35s ease; }
+  .modal-caja{ background:#fff; border-radius:16px; padding:32px 28px 26px; max-width:400px; width:100%; text-align:center; position:relative; box-shadow:0 30px 70px rgba(20,40,55,.32); animation:apareceModal .35s ease; transition:max-width .2s ease; }
+  .modal-caja.ancho{ max-width:520px; }
   @keyframes apareceModal{ from{ opacity:0; transform:translateY(14px) scale(.96);} to{ opacity:1; transform:translateY(0) scale(1);} }
   @media (prefers-reduced-motion:reduce){ .modal-caja{ animation:none; } }
   .modal-cerrar{ position:absolute; top:10px; right:12px; border:none; background:none; font-size:24px; color:var(--ink-soft); cursor:pointer; line-height:1; }
@@ -220,6 +221,19 @@
   .btn-compartir{ display:flex; flex-direction:column; align-items:center; gap:5px; border:1px solid var(--line); background:var(--paper); border-radius:10px; padding:14px 8px; font-size:13px; font-weight:700; color:var(--ink); cursor:pointer; }
   .btn-compartir span{ font-size:22px; }
   .btn-compartir:hover{ border-color:var(--amber); background:#fff; }
+
+  .modal-acciones-grandes{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:4px; }
+  .btn-exportar{ display:flex; flex-direction:column; align-items:center; gap:8px; border:1.5px solid var(--line); background:var(--paper); border-radius:12px; padding:24px 10px; font-size:14.5px; font-weight:700; color:var(--ink); cursor:pointer; }
+  .btn-exportar span{ font-size:32px; }
+  .btn-exportar:hover{ border-color:var(--amber); background:#fff; }
+
+  .modal-volver{ background:none; border:none; color:var(--ink-soft); font-size:13.5px; font-weight:700; cursor:pointer; padding:0 0 14px; text-align:left; display:block; }
+  .modal-volver:hover{ color:var(--ink); }
+  .compartir-titulo{ font-size:12px; color:var(--ink-soft); font-weight:700; letter-spacing:.03em; text-align:left; margin:2px 0 10px; text-transform:uppercase; }
+  .preview-imagen-wrap{ max-height:50vh; overflow-y:auto; border:1px solid var(--line); border-radius:8px; margin-bottom:18px; background:var(--stage); }
+  .preview-imagen-wrap img{ display:block; width:100%; height:auto; }
+  .vista-pdf-icono{ width:56px; height:56px; margin:6px auto 14px; border-radius:12px; background:var(--paper); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:26px; }
+  #estadoPDFModal{ text-align:center; font-size:14px; font-weight:700; color:var(--sage); margin:0 0 18px; }
 
   @media (max-width:760px){
     .grid{ grid-template-columns:1fr; }
@@ -359,19 +373,48 @@
 </div>
 
 <div class="modal-exito" id="modalExito">
-  <div class="modal-caja">
+  <div class="modal-caja" id="modalCaja">
     <button class="modal-cerrar" onclick="cerrarModalExito()" aria-label="Cerrar">&times;</button>
-    <div class="modal-icono">✓</div>
-    <h2>¡BUENA GUARDIA! RECI@</h2>
-    <p>Tu plan del <strong id="modalFecha"></strong> quedó registrado. ¿Cómo lo quieres compartir?</p>
-    <div class="modal-acciones">
-      <button class="btn-compartir" onclick="generarPDF()"><span>📄</span> PDF</button>
-      <button class="btn-compartir" onclick="descargarImagen()"><span>🖼️</span> Foto</button>
-      <button class="btn-compartir" onclick="compartirWhatsApp()"><span>💬</span> WhatsApp</button>
-      <button class="btn-compartir" onclick="compartirCorreo()"><span>✉️</span> Correo</button>
+
+    <div id="vistaExitoInicial">
+      <div class="modal-icono">✓</div>
+      <h2>¡BUENA GUARDIA! RECI@</h2>
+      <p>Tu plan del <strong id="modalFecha"></strong> quedó registrado.</p>
+      <div class="modal-acciones-grandes">
+        <button class="btn-exportar" onclick="mostrarVistaImagen()"><span>🖼️</span> Imagen</button>
+        <button class="btn-exportar" onclick="mostrarVistaPDF()"><span>📄</span> PDF</button>
+      </div>
+    </div>
+
+    <div id="vistaExitoImagen" style="display:none;">
+      <button type="button" class="modal-volver" onclick="volverAVistaInicial()">‹ Volver</button>
+      <div class="preview-imagen-wrap">
+        <img id="previewImagen" alt="Vista previa del plan diario">
+      </div>
+      <div class="compartir-titulo">Compartir por</div>
+      <div class="modal-acciones">
+        <button class="btn-compartir" onclick="compartirWhatsApp()"><span>💬</span> WhatsApp</button>
+        <button class="btn-compartir" onclick="compartirCorreo()"><span>✉️</span> Correo</button>
+        <button class="btn-compartir" onclick="compartirMasOpciones()"><span>📤</span> Más opciones</button>
+        <button class="btn-compartir" onclick="descargarImagen()"><span>⭳</span> Descargar</button>
+      </div>
+    </div>
+
+    <div id="vistaExitoPDF" style="display:none;">
+      <button type="button" class="modal-volver" onclick="volverAVistaInicial()">‹ Volver</button>
+      <div class="vista-pdf-icono">📄</div>
+      <p id="estadoPDFModal">Generando PDF…</p>
+      <div class="compartir-titulo">Compartir por</div>
+      <div class="modal-acciones">
+        <button class="btn-compartir" onclick="compartirWhatsApp()"><span>💬</span> WhatsApp</button>
+        <button class="btn-compartir" onclick="compartirCorreo()"><span>✉️</span> Correo</button>
+        <button class="btn-compartir" onclick="compartirMasOpciones()"><span>📤</span> Más opciones</button>
+        <button class="btn-compartir" onclick="generarPDF()"><span>⭳</span> Descargar de nuevo</button>
+      </div>
     </div>
   </div>
 </div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -979,10 +1022,37 @@ function obtenerArchivoPDF(){
   });
 }
 
+function obtenerArchivoImagen(){
+  return capturarCanvas().then(function(canvas){
+    return new Promise(function(resolve){
+      canvas.toBlob(function(blob){
+        resolve(new File([blob], nombreArchivoBase() + ".png", { type:"image/png" }));
+      }, "image/png");
+    });
+  });
+}
+
+/* ¿Qué vista de compartir está abierta? define si se comparte la
+   imagen o el PDF cuando se usa WhatsApp / Correo / Más opciones */
+function archivoActualParaCompartir(){
+  var vistaImagen = document.getElementById("vistaExitoImagen");
+  if(vistaImagen && vistaImagen.style.display !== "none"){
+    return obtenerArchivoImagen();
+  }
+  return obtenerArchivoPDF();
+}
+function descargarActual(){
+  var vistaImagen = document.getElementById("vistaExitoImagen");
+  if(vistaImagen && vistaImagen.style.display !== "none"){
+    return descargarImagen();
+  }
+  return generarPDF();
+}
+
 function compartirWhatsApp(){
   var texto = "Plan diario " + state.fecha + " - " + state.nombre + " (Sierra Antapite)";
   if(navigator.canShare){
-    obtenerArchivoPDF().then(function(archivo){
+    archivoActualParaCompartir().then(function(archivo){
       if(navigator.canShare({ files:[archivo] })){
         navigator.share({ files:[archivo], title:"Plan diario", text:texto }).catch(function(){});
       } else {
@@ -994,15 +1064,15 @@ function compartirWhatsApp(){
   }
 }
 function abrirWhatsAppConDescarga(texto){
-  generarPDF();
-  window.open("https://wa.me/?text=" + encodeURIComponent(texto + " — adjunta el PDF que se acaba de descargar."), "_blank");
+  descargarActual();
+  window.open("https://wa.me/?text=" + encodeURIComponent(texto + " — adjunta el archivo que se acaba de descargar."), "_blank");
 }
 
 function compartirCorreo(){
   var asunto = "Plan diario " + state.fecha + " - " + state.nombre;
   var cuerpo = "Adjunto el plan diario del " + state.fecha + ".";
   if(navigator.canShare){
-    obtenerArchivoPDF().then(function(archivo){
+    archivoActualParaCompartir().then(function(archivo){
       if(navigator.canShare({ files:[archivo] })){
         navigator.share({ files:[archivo], title:asunto, text:cuerpo }).catch(function(){});
       } else {
@@ -1014,8 +1084,29 @@ function compartirCorreo(){
   }
 }
 function abrirCorreoConDescarga(asunto, cuerpo){
-  generarPDF();
-  window.location.href = "mailto:?subject=" + encodeURIComponent(asunto) + "&body=" + encodeURIComponent(cuerpo + " Adjunta el PDF que se acaba de descargar.");
+  descargarActual();
+  window.location.href = "mailto:?subject=" + encodeURIComponent(asunto) + "&body=" + encodeURIComponent(cuerpo + " Adjunta el archivo que se acaba de descargar.");
+}
+
+/* Botón "Más opciones": abre el menú nativo de compartir del
+   celular (el mismo que usarías para compartir una foto de tu
+   galería) — ahí aparecen Facebook, Instagram, Telegram, etc.,
+   según lo que tengas instalado. En computadora, como no existe
+   ese menú, se descarga el archivo. */
+function compartirMasOpciones(){
+  if(!navigator.canShare){
+    descargarActual();
+    mostrarEstado("Tu navegador no tiene menú de compartir — se descargó el archivo.");
+    return;
+  }
+  archivoActualParaCompartir().then(function(archivo){
+    if(navigator.canShare({ files:[archivo] })){
+      navigator.share({ files:[archivo], title:"Plan diario", text:"Plan diario " + state.fecha + " - " + state.nombre }).catch(function(){});
+    } else {
+      descargarActual();
+      mostrarEstado("Tu navegador no tiene menú de compartir — se descargó el archivo.");
+    }
+  });
 }
 
 /* ---------------------------------------------------------
@@ -1023,10 +1114,40 @@ function abrirCorreoConDescarga(asunto, cuerpo){
 --------------------------------------------------------- */
 function mostrarModalExito(){
   document.getElementById("modalFecha").textContent = state.fecha;
+  volverAVistaInicial();
   document.getElementById("modalExito").classList.add("show");
 }
 function cerrarModalExito(){
   document.getElementById("modalExito").classList.remove("show");
+}
+
+function volverAVistaInicial(){
+  document.getElementById("modalCaja").classList.remove("ancho");
+  document.getElementById("vistaExitoInicial").style.display = "";
+  document.getElementById("vistaExitoImagen").style.display = "none";
+  document.getElementById("vistaExitoPDF").style.display = "none";
+}
+
+function mostrarVistaImagen(){
+  document.getElementById("modalCaja").classList.add("ancho");
+  document.getElementById("vistaExitoInicial").style.display = "none";
+  document.getElementById("vistaExitoPDF").style.display = "none";
+  document.getElementById("vistaExitoImagen").style.display = "";
+  document.getElementById("previewImagen").src = "";
+  capturarCanvas().then(function(canvas){
+    document.getElementById("previewImagen").src = canvas.toDataURL("image/png");
+  });
+}
+
+function mostrarVistaPDF(){
+  document.getElementById("modalCaja").classList.add("ancho");
+  document.getElementById("vistaExitoInicial").style.display = "none";
+  document.getElementById("vistaExitoImagen").style.display = "none";
+  document.getElementById("vistaExitoPDF").style.display = "";
+  document.getElementById("estadoPDFModal").textContent = "Generando PDF…";
+  generarPDF().then(function(){
+    document.getElementById("estadoPDFModal").textContent = "PDF descargado ✓";
+  });
 }
 
 /* ---------------------------------------------------------
