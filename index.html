@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Diario · Sierra Antapite</title>
+<style>
+  :root{
+    --stage:#D9EEF8;
+    --paper:#FBFAF6;
+    --ink:#1B2A34;
+    --ink-soft:#51697A;
+    --line:#D8E6EE;
+    --amber:#CC8A2E;
+    --amber-deep:#8C5A16;
+    --slate:#4C6070;
+    --sage:#6E8049;
+    --radius:4px;
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    background:var(--stage);
+    color:var(--ink);
+    font-family:'Arial Narrow','Liberation Sans Narrow',Arial,Helvetica,sans-serif;
+    font-size:16.5px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{ font-family:inherit; margin:0; }
+  button, input, textarea, select{ font-family:inherit; font-size:inherit; color:inherit; }
+  :focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+
+  /* ---------- Fondo animado ---------- */
+  .fondo-animado{ position:fixed; inset:0; overflow:hidden; z-index:-1; background:var(--stage); }
+  .fondo-animado .blob{ position:absolute; border-radius:50%; filter:blur(95px); opacity:.26; }
+  .blob.b1{ width:540px; height:540px; background:var(--amber); top:-140px; left:-110px; animation:flotar1 26s ease-in-out infinite; }
+  .blob.b2{ width:620px; height:620px; background:var(--slate); bottom:-170px; right:-150px; animation:flotar2 32s ease-in-out infinite; }
+  .blob.b3{ width:440px; height:440px; background:var(--sage); top:38%; left:58%; animation:flotar3 22s ease-in-out infinite; }
+  @keyframes flotar1{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(60px,80px) scale(1.15);} }
+  @keyframes flotar2{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-70px,-50px) scale(1.1);} }
+  @keyframes flotar3{ 0%,100%{ transform:translate(0,0) scale(1);} 50%{ transform:translate(-50px,60px) scale(1.2);} }
+  @media (prefers-reduced-motion:reduce){ .fondo-animado .blob{ animation:none !important; } }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:26px 20px 90px; position:relative; }
+
+  /* ---------- Aviso de configuración ---------- */
+  .config-banner{
+    display:none;
+    background:rgba(204,138,46,.15);
+    border:1px solid rgba(204,138,46,.55);
+    color:#6B4310;
+    padding:12px 16px;
+    border-radius:var(--radius);
+    font-size:14.5px;
+    margin-bottom:16px;
+    backdrop-filter:blur(6px);
+  }
+  .config-banner code{ background:rgba(0,0,0,.08); padding:1px 5px; border-radius:2px; }
+  .config-banner.show{ display:block; }
+
+  /* ---------- Barra de acciones ---------- */
+  .toolbar-acciones{
+    display:flex; flex-wrap:wrap; align-items:center; gap:14px;
+    background:rgba(255,255,255,.62);
+    border:1px solid rgba(27,42,52,.12);
+    backdrop-filter:blur(10px);
+    border-radius:var(--radius);
+    padding:12px 16px;
+    margin-bottom:22px;
+    color:var(--ink);
+  }
+  .grupo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding-left:14px; border-left:1px solid rgba(27,42,52,.14); }
+  .grupo:first-child{ border-left:none; padding-left:0; }
+  .grupo-historial{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+  .grupo-historial label{ font-size:11px; letter-spacing:.03em; color:var(--ink-soft); }
+  .grupo-peligro{ margin-left:auto; }
+  .estado-texto{ font-size:13.5px; color:var(--ink-soft); margin-left:auto; white-space:nowrap; }
+
+  .badge{ font-size:13px; font-weight:700; padding:6px 13px; border-radius:20px; letter-spacing:.02em; }
+  .badge.borrador{ background:rgba(76,96,112,.15); color:#37505F; border:1px solid rgba(55,80,95,.35); }
+  .badge.enviado{ background:rgba(110,128,73,.18); color:#3F5A28; border:1px solid rgba(63,90,40,.35); }
+
+  .btn{
+    border-radius:var(--radius); padding:10px 16px; font-size:14.5px; font-weight:700; cursor:pointer;
+    letter-spacing:.01em; white-space:nowrap;
+  }
+  .btn-outline{ background:transparent; border:1px solid rgba(27,42,52,.35); color:var(--ink); }
+  .btn-outline:hover{ background:rgba(27,42,52,.08); }
+  .btn-primario{ background:linear-gradient(135deg,var(--amber),var(--amber-deep)); border:none; color:#1B1204; }
+  .btn-primario:hover{ filter:brightness(1.08); }
+  .btn-peligro{ background:transparent; border:1px solid rgba(196,86,66,.55); color:#A23B28; }
+  .btn-peligro:hover{ background:rgba(196,86,66,.12); }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  select#selectHistorial{
+    border:1px solid rgba(27,42,52,.3); background:#fff; color:var(--ink);
+    border-radius:var(--radius); padding:6px 8px; font-size:13.5px;
+  }
+
+  /* ---------- Marco elegante ---------- */
+  .marco{ position:relative; padding:6px; }
+  .esquina{ position:absolute; width:26px; height:26px; pointer-events:none; }
+  .esquina.tl{ top:2px; left:2px; border-top:2px solid var(--amber); border-left:2px solid var(--amber); }
+  .esquina.tr{ top:2px; right:2px; border-top:2px solid var(--amber); border-right:2px solid var(--amber); }
+  .esquina.bl{ bottom:2px; left:2px; border-bottom:2px solid var(--amber); border-left:2px solid var(--amber); }
+  .esquina.br{ bottom:2px; right:2px; border-bottom:2px solid var(--amber); border-right:2px solid var(--amber); }
+
+  /* ---------- Encabezado ---------- */
+  header.plan{
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px;
+    padding:22px 26px 20px; color:var(--ink);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand svg{ width:48px; height:48px; flex:none; }
+  .brand-text .name{ font-size:13px; letter-spacing:.1em; color:var(--amber-deep); font-weight:700; }
+  .brand-text h1{ font-size:clamp(24px,4vw,30px); font-weight:700; color:var(--ink); }
+
+  .fields-top{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-end; }
+  .field-inline label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:4px; }
+  .field-inline input{
+    border:none; border-bottom:1.5px solid rgba(27,42,52,.35); background:transparent;
+    padding:4px 2px; font-size:17px; font-weight:700; min-width:150px; color:var(--ink);
+  }
+  .field-inline input:focus{ border-bottom-color:var(--amber); }
+
+  /* ---------- Hoja ---------- */
+  .sheet{
+    background:var(--paper);
+    border:1px solid rgba(204,138,46,.28);
+    border-radius:var(--radius);
+    box-shadow:0 18px 40px rgba(27,60,80,.16), 0 4px 12px rgba(27,60,80,.1);
+    padding:6px 0;
+  }
+  .grid{ display:grid; grid-template-columns:1.05fr .95fr; }
+  .col-left{ padding:26px 30px; }
+  .col-right{ padding:26px 30px; border-left:1px solid var(--line); }
+
+  section.block{ padding:19px 0; border-top:1px solid var(--line); }
+  section.block:first-child{ border-top:none; padding-top:0; }
+  section.block h2{ font-size:14.5px; font-weight:700; letter-spacing:.03em; color:var(--ink); margin-bottom:10px; }
+
+  .frase-input{
+    width:100%; border:none; background:transparent; resize:none;
+    font-size:clamp(21px,2.6vw,27px); font-weight:700; line-height:1.4; color:var(--ink); padding:2px 0;
+  }
+  .frase-input::placeholder{ color:#A9B7BF; }
+
+  .texto-simple{
+    width:100%; border:none; border-bottom:1px solid var(--line); background:transparent;
+    padding:7px 2px; font-size:16px;
+  }
+  .texto-simple:focus{ border-bottom-color:var(--slate); }
+
+  textarea.notas{
+    width:100%; min-height:95px; border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; padding:11px; font-size:15.5px; resize:vertical;
+  }
+
+  .progreso{ height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-bottom:12px; }
+  .progreso i{ display:block; height:100%; background:var(--sage); width:0%; transition:width .25s ease; }
+
+  ul.lista{ list-style:none; margin:0; padding:0; }
+  ul.lista li{ display:flex; align-items:center; gap:10px; padding:7px 0; }
+  .chk{
+    appearance:none; -webkit-appearance:none; width:20px; height:20px; flex:none;
+    border:1.6px solid var(--ink-soft); background:#fff; cursor:pointer; display:grid; place-items:center;
+  }
+  .chk.cuadrado{ border-radius:3px; }
+  .chk.circulo{ border-radius:50%; }
+  .chk:checked{ background:var(--sage); border-color:var(--sage); }
+  .chk.cuadrado:checked::after{ content:"✓"; color:#fff; font-size:13px; font-weight:700; }
+  .chk.circulo:checked::after{ content:""; width:8px; height:8px; border-radius:50%; background:#fff; }
+  .chk:disabled{ opacity:.7; cursor:default; }
+
+  ul.lista li input.texto-item{ flex:1; border:none; background:transparent; padding:6px 2px; font-size:16px; }
+  ul.lista li.hecho input.texto-item{ color:var(--ink-soft); text-decoration:line-through; }
+  ul.lista li button.borrar{
+    flex:none; border:none; background:none; color:#A9B7BF; font-size:18px; cursor:pointer;
+    width:26px; height:26px; border-radius:50%;
+  }
+  ul.lista li button.borrar:hover{ color:#a33; background:rgba(170,51,51,.08); }
+
+  .agregar-fila{ display:flex; gap:8px; margin-top:8px; }
+  .agregar-fila input{ flex:1; border:1px dashed var(--line); border-radius:var(--radius); padding:8px 10px; font-size:15px; background:transparent; }
+  .agregar-fila button{ border:1px solid var(--ink); background:transparent; color:var(--ink); border-radius:var(--radius); padding:0 14px; font-size:14px; cursor:pointer; font-weight:700; }
+  .agregar-fila button:hover{ background:var(--ink); color:var(--paper); }
+
+  .agua-fila{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .vaso{ width:32px; height:40px; border:1.6px solid var(--slate); border-radius:2px 2px 8px 8px; cursor:pointer; }
+  .vaso.lleno{ background:var(--slate); opacity:.75; }
+  .vaso.bloqueado{ pointer-events:none; }
+  .agua-txt{ font-size:13.5px; color:var(--ink-soft); margin-left:4px; }
+
+  .horario-lista{ display:flex; flex-direction:column; }
+  .hora-fila{ display:grid; grid-template-columns:82px 1fr; gap:12px; align-items:center; padding:8px 0; border-bottom:1px dotted var(--line); }
+  .hora-fila:last-child{ border-bottom:none; }
+  .hora-fila .etiqueta{ font-size:13.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; font-weight:700; }
+  .hora-fila input{ border:none; border-bottom:1px solid transparent; background:transparent; padding:5px 2px; font-size:15px; }
+  .hora-fila input:focus{ border-bottom-color:var(--slate); }
+  .hora-fila.actual{ background:rgba(204,138,46,.14); border-radius:var(--radius); padding-left:8px; margin-left:-8px; }
+  .hora-fila.actual .etiqueta{ color:var(--amber-deep); }
+
+  .firma{ font-size:13.5px; color:var(--ink-soft); padding:14px 30px 20px; border-top:1px solid var(--line); }
+  .firma strong{ color:var(--ink); font-weight:700; }
+
+  /* ---------- Modal de éxito ---------- */
+  .modal-exito{ position:fixed; inset:0; background:rgba(20,40,55,.42); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-exito.show{ display:flex; }
+  .modal-caja{ background:#fff; border-radius:16px; padding:36px 30px 28px; max-width:400px; width:100%; text-align:center; position:relative; box-shadow:0 30px 70px rgba(20,40,55,.32); animation:apareceModal .35s ease; }
+  @keyframes apareceModal{ from{ opacity:0; transform:translateY(14px) scale(.96);} to{ opacity:1; transform:translateY(0) scale(1);} }
+  @media (prefers-reduced-motion:reduce){ .modal-caja{ animation:none; } }
+  .modal-cerrar{ position:absolute; top:10px; right:12px; border:none; background:none; font-size:24px; color:var(--ink-soft); cursor:pointer; line-height:1; }
+  .modal-icono{ width:64px; height:64px; margin:0 auto 16px; border-radius:50%; background:linear-gradient(135deg,var(--sage),var(--slate)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:700; }
+  .modal-caja h2{ font-size:23px; font-weight:700; letter-spacing:.02em; color:var(--ink); margin-bottom:6px; }
+  .modal-caja p{ font-size:15px; color:var(--ink-soft); margin:0 0 24px; }
+  .modal-acciones{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn-compartir{ display:flex; flex-direction:column; align-items:center; gap:5px; border:1px solid var(--line); background:var(--paper); border-radius:10px; padding:14px 8px; font-size:13px; font-weight:700; color:var(--ink); cursor:pointer; }
+  .btn-compartir span{ font-size:22px; }
+  .btn-compartir:hover{ border-color:var(--amber); background:#fff; }
+
+  @media (max-width:760px){
+    .grid{ grid-template-columns:1fr; }
+    .col-right{ border-left:none; border-top:1px solid var(--line); }
+    .grupo{ border-left:none; padding-left:0; }
+    .grupo-peligro{ margin-left:0; }
+    .estado-texto{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="fondo-animado">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+</div>
+
+<div class="wrap">
+
+  <div class="config-banner" id="configBanner">
+    ⚠ Este formulario aún no está conectado a tu base de datos en la nube. Tus datos se están guardando solo en este navegador.
+    Busca la línea <code>const SCRIPT_URL</code> al final del archivo y pega ahí la URL de tu backend.
+  </div>
+
+  <div class="toolbar-acciones">
+    <div class="grupo grupo-estado">
+      <span id="badgeEstado" class="badge borrador">Borrador</span>
+    </div>
+    <div class="grupo">
+      <button type="button" id="btnEditar" class="btn btn-outline" onclick="editarPlan()">✎ Editar</button>
+      <button type="button" id="btnGuardarBorrador" class="btn btn-outline" onclick="guardarBorrador()">Guardar borrador</button>
+      <button type="button" id="btnEnviar" class="btn btn-primario" onclick="enviarPlan()">Enviar plan</button>
+      <button type="button" class="btn btn-outline" onclick="generarPDF()">⭳ Generar PDF</button>
+    </div>
+    <div class="grupo grupo-historial">
+      <label for="selectHistorial">Historial (solo PDF)</label>
+      <select id="selectHistorial" onchange="if(this.value) verHistorialPDF(this.value)">
+        <option value="">— elegir día —</option>
+      </select>
+    </div>
+    <div class="grupo grupo-peligro">
+      <button type="button" class="btn btn-peligro" onclick="eliminarDia()">🗑 Eliminar todo</button>
+    </div>
+    <div id="estado" class="estado-texto"></div>
+  </div>
+
+  <div class="marco" id="hojaPdf">
+    <span class="esquina tl"></span>
+    <span class="esquina tr"></span>
+    <span class="esquina bl"></span>
+    <span class="esquina br"></span>
+
+    <header class="plan">
+      <div class="brand">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="36" cy="12" r="5" fill="#CC8A2E"/>
+          <path d="M2 38L15 16L23 28L29 18L46 38H2Z" fill="#2C3E4C"/>
+          <path d="M23 28L29 18L46 38H23V28Z" fill="#7FA6BD"/>
+        </svg>
+        <div class="brand-text">
+          <div class="name">SIERRA ANTAPITE</div>
+          <h1>Plan diario</h1>
+        </div>
+      </div>
+      <div class="fields-top">
+        <div class="field-inline">
+          <label for="campoNombre">Responsable</label>
+          <input type="text" id="campoNombre" value="Leoncio De la Cruz Santolalla">
+        </div>
+        <div class="field-inline">
+          <label for="campoFecha">Fecha</label>
+          <input type="date" id="campoFecha">
+        </div>
+      </div>
+    </header>
+
+    <div class="sheet">
+      <div class="grid">
+
+        <div class="col-left">
+          <section class="block">
+            <h2>Frase del día</h2>
+            <textarea class="frase-input" id="campoFrase" rows="2" placeholder="Estoy enfocado/a y disciplinado/a."></textarea>
+          </section>
+
+          <section class="block">
+            <h2>Hoy agradezco por</h2>
+            <input type="text" class="texto-simple" id="campoGratitud" placeholder="El bienestar de mi familia.">
+          </section>
+
+          <section class="block">
+            <h2>Prioridades</h2>
+            <div class="progreso"><i id="progresoPrioridades"></i></div>
+            <ul class="lista" id="listaPrioridades"></ul>
+            <div class="agregar-fila">
+              <input type="text" id="nuevaPrioridad" placeholder="Agregar prioridad…">
+              <button type="button" onclick="agregarItem('prioridades')">Añadir</button>
+            </div>
+          </section>
+
+          <section class="block">
+            <h2>Por hacer</h2>
+            <ul class="lista" id="listaPorHacer"></ul>
+            <div class="agregar-fila">
+              <input type="text" id="nuevoPorHacer" placeholder="Agregar tarea…">
+              <button type="button" onclick="agregarItem('porHacer')">Añadir</button>
+            </div>
+          </section>
+
+          <section class="block">
+            <h2>Vasos de agua</h2>
+            <div class="agua-fila" id="filaAgua"></div>
+            <div class="agua-txt" id="aguaTexto"></div>
+          </section>
+
+          <section class="block">
+            <h2>Notas</h2>
+            <textarea class="notas" id="campoNotas" placeholder="Anotaciones del día…"></textarea>
+          </section>
+        </div>
+
+        <div class="col-right">
+          <section class="block" style="padding-top:0;border-top:none;">
+            <h2>Horario</h2>
+            <div class="horario-lista" id="listaHorario"></div>
+          </section>
+        </div>
+
+      </div>
+
+      <div class="firma">Firmado por <strong id="firmaNombre">Leoncio De la Cruz Santolalla</strong></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-exito" id="modalExito">
+  <div class="modal-caja">
+    <button class="modal-cerrar" onclick="cerrarModalExito()" aria-label="Cerrar">&times;</button>
+    <div class="modal-icono">✓</div>
+    <h2>¡BUENA GUARDIA! RECIBID@</h2>
+    <p>Tu plan del <strong id="modalFecha"></strong> quedó registrado. ¿Cómo lo quieres compartir?</p>
+    <div class="modal-acciones">
+      <button class="btn-compartir" onclick="generarPDF()"><span>📄</span> PDF</button>
+      <button class="btn-compartir" onclick="descargarImagen()"><span>🖼️</span> Foto</button>
+      <button class="btn-compartir" onclick="compartirWhatsApp()"><span>💬</span> WhatsApp</button>
+      <button class="btn-compartir" onclick="compartirCorreo()"><span>✉️</span> Correo</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* =========================================================
+   CONFIGURACIÓN — pega aquí la URL de tu backend (Google Apps
+   Script Web App u otro). Debe empezar con https://
+   ========================================================= */
+var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhk4JjwdSi9KFsx8Bh9e1cOCJCDTuO-NuYEUrW1xJCNCZFI06qz69hmKxSdVKOQc3L/exec";
+
+var state = plantillaVacia();
+var modoEdicion = true;
+var cargandoDesdeCodigo = false;
+
+function plantillaVacia(){
+  return {
+    fecha: hoyISO(),
+    nombre: "Leoncio De la Cruz Santolalla",
+    frase: "",
+    gratitud: "",
+    prioridades: [
+      { id: uid(), texto: "", hecho:false },
+      { id: uid(), texto: "", hecho:false },
+      { id: uid(), texto: "", hecho:false }
+    ],
+    porHacer: [
+      { id: uid(), texto: "", hecho:false },
+      { id: uid(), texto: "", hecho:false }
+    ],
+    horario: horarioPorDefecto(),
+    agua: 0,
+    notas: "",
+    enviado: false,
+    fechaEnvio: null
+  };
+}
+
+function horarioPorDefecto(){
+  var filas = [];
+  for(var h=5; h<=22; h++){ filas.push({ hora24:h, etiqueta:formatoHora(h), texto:"" }); }
+  return filas;
+}
+function formatoHora(h){
+  var periodo = h < 12 ? "a.m." : "p.m.";
+  var h12 = h % 12; if(h12===0) h12 = 12;
+  return h12 + ":00 " + periodo;
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function hoyISO(){
+  var d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function formatoFechaHora(iso){
+  if(!iso) return "";
+  var d = new Date(iso);
+  return d.toLocaleDateString("es-PE") + " " + d.toLocaleTimeString("es-PE", {hour:"2-digit",minute:"2-digit"});
+}
+
+/* ---------------------------------------------------------
+   Render
+--------------------------------------------------------- */
+function renderTodo(){
+  document.getElementById("campoNombre").value = state.nombre;
+  document.getElementById("campoFecha").value = state.fecha;
+  document.getElementById("campoFrase").value = state.frase;
+  document.getElementById("campoGratitud").value = state.gratitud;
+  document.getElementById("campoNotas").value = state.notas;
+  document.getElementById("firmaNombre").textContent = state.nombre || "—";
+
+  renderLista("prioridades");
+  renderLista("porHacer");
+  renderAgua();
+  renderHorario();
+  renderProgreso();
+  aplicarModoSegunEstado();
+}
+
+function renderLista(clave){
+  var contenedor = document.getElementById(clave === "prioridades" ? "listaPrioridades" : "listaPorHacer");
+  var forma = clave === "prioridades" ? "cuadrado" : "circulo";
+  contenedor.innerHTML = "";
+  state[clave].forEach(function(item){
+    var li = document.createElement("li");
+    if(item.hecho) li.classList.add("hecho");
+
+    var chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.className = "chk " + forma;
+    chk.checked = item.hecho;
+    chk.addEventListener("change", function(){
+      item.hecho = chk.checked;
+      li.classList.toggle("hecho", item.hecho);
+      renderProgreso();
+    });
+
+    var texto = document.createElement("input");
+    texto.type = "text";
+    texto.className = "texto-item";
+    texto.value = item.texto;
+    texto.placeholder = "Escribe aquí…";
+    texto.addEventListener("input", function(){ item.texto = texto.value; });
+
+    var borrar = document.createElement("button");
+    borrar.type = "button";
+    borrar.className = "borrar";
+    borrar.innerHTML = "&times;";
+    borrar.addEventListener("click", function(){
+      state[clave] = state[clave].filter(function(x){ return x.id!==item.id; });
+      renderLista(clave);
+      renderProgreso();
+    });
+
+    li.appendChild(chk); li.appendChild(texto); li.appendChild(borrar);
+    contenedor.appendChild(li);
+  });
+}
+
+function agregarItem(clave){
+  var inputId = clave === "prioridades" ? "nuevaPrioridad" : "nuevoPorHacer";
+  var input = document.getElementById(inputId);
+  var texto = input.value.trim();
+  state[clave].push({ id: uid(), texto: texto, hecho:false });
+  input.value = "";
+  renderLista(clave);
+  renderProgreso();
+}
+["nuevaPrioridad","nuevoPorHacer"].forEach(function(id){
+  document.getElementById(id).addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ e.preventDefault(); agregarItem(id==="nuevaPrioridad" ? "prioridades" : "porHacer"); }
+  });
+});
+
+function renderProgreso(){
+  var total = state.prioridades.length;
+  var hechos = state.prioridades.filter(function(p){ return p.hecho; }).length;
+  var pct = total ? Math.round(hechos/total*100) : 0;
+  document.getElementById("progresoPrioridades").style.width = pct + "%";
+}
+
+function renderAgua(){
+  var fila = document.getElementById("filaAgua");
+  fila.innerHTML = "";
+  for(var i=0;i<8;i++){
+    (function(i){
+      var vaso = document.createElement("div");
+      vaso.className = "vaso" + (i < state.agua ? " lleno" : "");
+      vaso.title = (i+1) + " vaso(s)";
+      vaso.addEventListener("click", function(){
+        if(!modoEdicion) return;
+        state.agua = (state.agua === i+1) ? i : i+1;
+        renderAgua();
+      });
+      fila.appendChild(vaso);
+    })(i);
+  }
+  document.getElementById("aguaTexto").textContent = state.agua + " de 8 vasos";
+}
+
+function renderHorario(){
+  var cont = document.getElementById("listaHorario");
+  cont.innerHTML = "";
+  var horaActual = new Date().getHours();
+  state.horario.forEach(function(fila){
+    var div = document.createElement("div");
+    div.className = "hora-fila" + (fila.hora24 === horaActual ? " actual" : "");
+
+    var etiqueta = document.createElement("div");
+    etiqueta.className = "etiqueta";
+    etiqueta.textContent = fila.etiqueta;
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = fila.texto;
+    input.placeholder = "—";
+    input.addEventListener("input", function(){ fila.texto = input.value; });
+
+    div.appendChild(etiqueta); div.appendChild(input);
+    cont.appendChild(div);
+  });
+}
+
+/* ---------------------------------------------------------
+   Bloqueo / edición según estado del día
+--------------------------------------------------------- */
+function aplicarModoSegunEstado(){
+  var bloqueado = !modoEdicion;
+
+  document.querySelectorAll("#hojaPdf input, #hojaPdf textarea").forEach(function(el){ el.disabled = bloqueado; });
+  document.querySelectorAll("#hojaPdf .borrar, #hojaPdf .agregar-fila").forEach(function(el){ el.style.display = bloqueado ? "none" : ""; });
+  document.querySelectorAll("#hojaPdf .vaso").forEach(function(el){ el.classList.toggle("bloqueado", bloqueado); });
+
+  document.getElementById("btnEditar").style.display = bloqueado ? "" : "none";
+  document.getElementById("btnGuardarBorrador").style.display = bloqueado ? "none" : "";
+  document.getElementById("btnGuardarBorrador").textContent = state.enviado ? "Guardar cambios" : "Guardar borrador";
+  document.getElementById("btnEnviar").style.display = (bloqueado || state.enviado) ? "none" : "";
+
+  var badge = document.getElementById("badgeEstado");
+  if(state.enviado){
+    badge.textContent = "Enviado · " + formatoFechaHora(state.fechaEnvio);
+    badge.className = "badge enviado";
+  }else{
+    badge.textContent = "Borrador";
+    badge.className = "badge borrador";
+  }
+}
+
+function editarPlan(){
+  modoEdicion = true;
+  aplicarModoSegunEstado();
+  mostrarEstado("Modo edición activado");
+}
+
+/* ---------------------------------------------------------
+   Campos sueltos
+--------------------------------------------------------- */
+document.getElementById("campoNombre").addEventListener("input", function(e){
+  state.nombre = e.target.value;
+  document.getElementById("firmaNombre").textContent = state.nombre || "—";
+});
+document.getElementById("campoFrase").addEventListener("input", function(e){ state.frase = e.target.value; });
+document.getElementById("campoGratitud").addEventListener("input", function(e){ state.gratitud = e.target.value; });
+document.getElementById("campoNotas").addEventListener("input", function(e){ state.notas = e.target.value; });
+document.getElementById("campoFecha").addEventListener("change", function(e){
+  if(!cargandoDesdeCodigo) cambiarFecha(e.target.value);
+});
+
+/* ---------------------------------------------------------
+   Estado / mensajes
+--------------------------------------------------------- */
+function mostrarEstado(texto){
+  document.getElementById("estado").textContent = texto;
+}
+function horaCorta(){
+  var d = new Date();
+  return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+function scriptConfigurado(){
+  return typeof SCRIPT_URL === "string" && SCRIPT_URL.indexOf("http") === 0;
+}
+
+/* ---------------------------------------------------------
+   Carga por fecha
+--------------------------------------------------------- */
+function normalizar(registro, fecha){
+  return {
+    fecha: fecha,
+    nombre: registro.nombre || "Leoncio De la Cruz Santolalla",
+    frase: registro.frase || "",
+    gratitud: registro.gratitud || "",
+    prioridades: (registro.prioridades && registro.prioridades.length) ? registro.prioridades : plantillaVacia().prioridades,
+    porHacer: (registro.porHacer && registro.porHacer.length) ? registro.porHacer : plantillaVacia().porHacer,
+    horario: (registro.horario && registro.horario.length) ? registro.horario : horarioPorDefecto(),
+    agua: registro.agua || 0,
+    notas: registro.notas || "",
+    enviado: !!registro.enviado,
+    fechaEnvio: registro.fechaEnvio || null
+  };
+}
+
+function cambiarFecha(fecha){
+  cargandoDesdeCodigo = true;
+  mostrarEstado("Cargando…");
+  obtenerRegistro(fecha).then(function(registro){
+    state = registro ? normalizar(registro, fecha) : Object.assign(plantillaVacia(), { fecha: fecha });
+    modoEdicion = !state.enviado;
+    renderTodo();
+    mostrarEstado(registro ? (state.enviado ? "Día enviado — solo lectura" : "Borrador cargado") : "Día nuevo — sin registros aún");
+    cargandoDesdeCodigo = false;
+  });
+}
+
+function obtenerRegistro(fecha){
+  return new Promise(function(resolve){
+    if(scriptConfigurado()){
+      fetch(SCRIPT_URL + "?action=get&fecha=" + fecha)
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          if(data.ok && data.registro){ resolve(data.registro); return; }
+          resolveLocal();
+        })
+        .catch(function(){ resolveLocal(); });
+    } else {
+      resolveLocal();
+    }
+    function resolveLocal(){
+      var local = localStorage.getItem("plan-antapite:" + fecha);
+      resolve(local ? JSON.parse(local) : null);
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   Guardar / enviar / eliminar
+--------------------------------------------------------- */
+function guardarBorrador(){ guardarEnServidor(); }
+
+function enviarPlan(){
+  if(state.enviado) return;
+  var confirmar = confirm("Al enviar, el plan del día " + state.fecha + " quedará bloqueado y solo se admite un envío por día. ¿Enviar ahora?");
+  if(!confirmar) return;
+  state.enviado = true;
+  state.fechaEnvio = new Date().toISOString();
+  guardarEnServidor().then(function(){
+    modoEdicion = false;
+    aplicarModoSegunEstado();
+    mostrarModalExito();
+  });
+}
+
+function guardarEnServidor(){
+  document.querySelectorAll(".toolbar-acciones button").forEach(function(b){ b.disabled = true; });
+  localStorage.setItem("plan-antapite:" + state.fecha, JSON.stringify(state));
+
+  var promesa;
+  if(scriptConfigurado()){
+    mostrarEstado("Guardando en la nube…");
+    promesa = fetch(SCRIPT_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify(state)
+    }).then(function(res){ return res.json(); }).then(function(data){
+      if(data.ok){
+        mostrarEstado((state.enviado ? "Enviado y guardado" : "Borrador guardado") + " · " + horaCorta());
+        cargarHistorial();
+      }else{
+        mostrarEstado("Guardado local — hubo un error en la nube");
+      }
+    }).catch(function(){
+      mostrarEstado("Guardado local — sin conexión con la nube");
+    });
+  }else{
+    mostrarEstado("Guardado solo en este navegador");
+    promesa = Promise.resolve();
+  }
+  return promesa.finally(function(){
+    document.querySelectorAll(".toolbar-acciones button").forEach(function(b){ b.disabled = false; });
+    aplicarModoSegunEstado();
+  });
+}
+
+function eliminarDia(){
+  var confirmar = confirm("Vas a eliminar TODOS los datos del plan del día " + state.fecha + ".\nEsta acción no se puede deshacer. ¿Confirmas?");
+  if(!confirmar) return;
+  localStorage.removeItem("plan-antapite:" + state.fecha);
+
+  var limpiar = function(){
+    state = Object.assign(plantillaVacia(), { fecha: state.fecha });
+    modoEdicion = true;
+    renderTodo();
+    mostrarEstado("Día eliminado");
+    cargarHistorial();
+  };
+
+  if(scriptConfigurado()){
+    fetch(SCRIPT_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({ action:"delete", fecha: state.fecha })
+    }).then(limpiar).catch(limpiar);
+  } else {
+    limpiar();
+  }
+}
+
+/* ---------------------------------------------------------
+   Historial (solo PDF)
+--------------------------------------------------------- */
+function cargarHistorial(){
+  if(!scriptConfigurado()) return;
+  fetch(SCRIPT_URL + "?action=list")
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if(!data.ok) return;
+      var select = document.getElementById("selectHistorial");
+      select.innerHTML = '<option value="">— elegir día —</option>';
+      data.fechas.forEach(function(f){
+        var opt = document.createElement("option");
+        opt.value = f; opt.textContent = f;
+        select.appendChild(opt);
+      });
+    })
+    .catch(function(){});
+}
+
+function verHistorialPDF(fecha){
+  if(!fecha) return;
+  var estadoRespaldo = JSON.parse(JSON.stringify(state));
+  var modoRespaldo = modoEdicion;
+  mostrarEstado("Generando PDF de " + fecha + "…");
+
+  obtenerRegistro(fecha).then(function(registro){
+    if(!registro){
+      mostrarEstado("No hay datos guardados para ese día");
+      document.getElementById("selectHistorial").value = "";
+      return;
+    }
+    state = normalizar(registro, fecha);
+    modoEdicion = false;
+    renderTodo();
+    generarPDF().then(function(){
+      state = estadoRespaldo;
+      modoEdicion = modoRespaldo;
+      renderTodo();
+      document.getElementById("selectHistorial").value = "";
+    });
+  });
+}
+
+/* ---------------------------------------------------------
+   PDF, foto y compartir
+--------------------------------------------------------- */
+function nombreArchivoBase(){ return "Plan-Diario-" + state.fecha; }
+
+function capturarCanvas(){
+  return new Promise(function(resolve){
+    setTimeout(function(){
+      html2canvas(document.getElementById("hojaPdf"), { scale:2, backgroundColor:"#D9EEF8", useCORS:true }).then(resolve);
+    }, 30);
+  });
+}
+
+function crearPDFDesdeCanvas(canvas){
+  var jsPDFLib = window.jspdf.jsPDF;
+  var pdf = new jsPDFLib("p","mm","a4");
+  var pageWidth = pdf.internal.pageSize.getWidth();
+  var pageHeight = pdf.internal.pageSize.getHeight();
+  var imgWidth = pageWidth;
+  var imgHeight = canvas.height * imgWidth / canvas.width;
+  var heightLeft = imgHeight;
+  var position = 0;
+  var imgData = canvas.toDataURL("image/png");
+
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  while(heightLeft > 0){
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  return pdf;
+}
+
+function generarPDF(){
+  mostrarEstado("Generando PDF…");
+  return capturarCanvas().then(function(canvas){
+    var pdf = crearPDFDesdeCanvas(canvas);
+    pdf.save(nombreArchivoBase() + ".pdf");
+    mostrarEstado("PDF descargado");
+  });
+}
+
+function descargarImagen(){
+  mostrarEstado("Generando imagen…");
+  return capturarCanvas().then(function(canvas){
+    var link = document.createElement("a");
+    link.download = nombreArchivoBase() + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    mostrarEstado("Imagen descargada");
+  });
+}
+
+function obtenerArchivoPDF(){
+  return capturarCanvas().then(function(canvas){
+    var pdf = crearPDFDesdeCanvas(canvas);
+    var blob = pdf.output("blob");
+    return new File([blob], nombreArchivoBase() + ".pdf", { type:"application/pdf" });
+  });
+}
+
+function compartirWhatsApp(){
+  var texto = "Plan diario " + state.fecha + " - " + state.nombre + " (Sierra Antapite)";
+  if(navigator.canShare){
+    obtenerArchivoPDF().then(function(archivo){
+      if(navigator.canShare({ files:[archivo] })){
+        navigator.share({ files:[archivo], title:"Plan diario", text:texto }).catch(function(){});
+      } else {
+        abrirWhatsAppConDescarga(texto);
+      }
+    });
+  } else {
+    abrirWhatsAppConDescarga(texto);
+  }
+}
+function abrirWhatsAppConDescarga(texto){
+  generarPDF();
+  window.open("https://wa.me/?text=" + encodeURIComponent(texto + " — adjunta el PDF que se acaba de descargar."), "_blank");
+}
+
+function compartirCorreo(){
+  var asunto = "Plan diario " + state.fecha + " - " + state.nombre;
+  var cuerpo = "Adjunto el plan diario del " + state.fecha + ".";
+  if(navigator.canShare){
+    obtenerArchivoPDF().then(function(archivo){
+      if(navigator.canShare({ files:[archivo] })){
+        navigator.share({ files:[archivo], title:asunto, text:cuerpo }).catch(function(){});
+      } else {
+        abrirCorreoConDescarga(asunto, cuerpo);
+      }
+    });
+  } else {
+    abrirCorreoConDescarga(asunto, cuerpo);
+  }
+}
+function abrirCorreoConDescarga(asunto, cuerpo){
+  generarPDF();
+  window.location.href = "mailto:?subject=" + encodeURIComponent(asunto) + "&body=" + encodeURIComponent(cuerpo + " Adjunta el PDF que se acaba de descargar.");
+}
+
+/* ---------------------------------------------------------
+   Modal de éxito
+--------------------------------------------------------- */
+function mostrarModalExito(){
+  document.getElementById("modalFecha").textContent = state.fecha;
+  document.getElementById("modalExito").classList.add("show");
+}
+function cerrarModalExito(){
+  document.getElementById("modalExito").classList.remove("show");
+}
+
+/* ---------------------------------------------------------
+   Inicio
+--------------------------------------------------------- */
+(function init(){
+  if(!scriptConfigurado()){
+    document.getElementById("configBanner").classList.add("show");
+  }
+  cambiarFecha(hoyISO());
+  cargarHistorial();
+})();
+</script>
+</body>
+</html>
