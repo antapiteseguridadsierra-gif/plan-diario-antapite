@@ -196,6 +196,12 @@
 
   .horario-lista{ display:flex; flex-direction:column; }
   .hora-fila{ display:grid; grid-template-columns:82px 1fr; gap:12px; align-items:center; padding:8px 0; border-bottom:1px dotted var(--line); }
+
+  /* Al exportar (PDF/foto) se arma como una tira angosta tipo
+     celular, y las filas/secciones vacías se ocultan solas */
+  #hojaPdf.modo-exportacion{ max-width:480px; margin:0 auto; }
+  #hojaPdf.modo-exportacion .grid{ grid-template-columns:1fr; }
+  #hojaPdf.modo-exportacion .col-right{ border-left:none; border-top:1px solid var(--line); }
   .hora-fila:last-child{ border-bottom:none; }
   .hora-fila .etiqueta{ font-size:13.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; font-weight:700; }
   .hora-fila input{ border:none; border-bottom:1px solid transparent; background:transparent; padding:5px 2px; font-size:15px; }
@@ -939,6 +945,89 @@ function verHistorialPDF(fecha){
 --------------------------------------------------------- */
 function nombreArchivoBase(){ return "Plan-Diario-" + state.fecha; }
 
+/* ---------------------------------------------------------
+   Modo exportación: antes de generar el PDF/foto, oculta filas
+   y secciones vacías (horario sin llenar, prioridades/tareas sin
+   texto, notas vacías, etc.) para que salga compacto y legible
+   en un celular, y arma la hoja en una sola columna angosta.
+--------------------------------------------------------- */
+var elementosAjustadosExportacion = [];
+
+function prepararExportacion(){
+  document.getElementById("hojaPdf").classList.add("modo-exportacion");
+  elementosAjustadosExportacion = [];
+
+  function ocultarBloqueSiVacio(elementoId, estaVacio){
+    var el = document.getElementById(elementoId);
+    if(!el || !estaVacio) return;
+    var bloque = el.closest(".block");
+    if(bloque){ bloque.style.display = "none"; elementosAjustadosExportacion.push(bloque); }
+  }
+
+  ocultarBloqueSiVacio("campoFrase", !state.frase.trim());
+  ocultarBloqueSiVacio("campoGratitud", !state.gratitud.trim());
+  ocultarBloqueSiVacio("campoNotas", !state.notas.trim());
+
+  var visiblesPrioridades = 0;
+  document.querySelectorAll("#listaPrioridades li").forEach(function(li){
+    var input = li.querySelector(".texto-item");
+    if(input && input.value.trim()){ visiblesPrioridades++; }
+    else { li.style.display = "none"; elementosAjustadosExportacion.push(li); }
+  });
+  ocultarBloqueSiVacio("listaPrioridades", visiblesPrioridades === 0);
+
+  var visiblesPorHacer = 0;
+  document.querySelectorAll("#listaPorHacer li").forEach(function(li){
+    var input = li.querySelector(".texto-item");
+    if(input && input.value.trim()){ visiblesPorHacer++; }
+    else { li.style.display = "none"; elementosAjustadosExportacion.push(li); }
+  });
+  ocultarBloqueSiVacio("listaPorHacer", visiblesPorHacer === 0);
+
+  var visiblesHorario = 0;
+  document.querySelectorAll("#listaHorario .hora-fila").forEach(function(fila){
+    var input = fila.querySelector("input");
+    if(input && input.value.trim()){ visiblesHorario++; }
+    else { fila.style.display = "none"; elementosAjustadosExportacion.push(fila); }
+  });
+  if(visiblesHorario === 0){
+    var colRight = document.querySelector(".col-right");
+    if(colRight){ colRight.style.display = "none"; elementosAjustadosExportacion.push(colRight); }
+  }
+
+  // Ocultar controles de edición aunque el formulario esté desbloqueado
+  document.querySelectorAll("#hojaPdf .agregar-fila, #hojaPdf .borrar").forEach(function(el){
+    if(el.style.display !== "none"){ el.style.display = "none"; elementosAjustadosExportacion.push(el); }
+  });
+
+  // La primera sección visible de la columna izquierda no debe
+  // arrastrar la línea/espacio superior pensada para cuando hay
+  // otra sección arriba
+  var primeraColIzq = document.querySelector(".col-left");
+  if(primeraColIzq){
+    var secciones = primeraColIzq.querySelectorAll(":scope > section.block");
+    for(var i=0;i<secciones.length;i++){
+      if(secciones[i].style.display !== "none"){
+        secciones[i].style.borderTop = "none";
+        secciones[i].style.paddingTop = "0";
+        elementosAjustadosExportacion.push(secciones[i]);
+        break;
+      }
+    }
+  }
+}
+
+function restaurarExportacion(){
+  document.getElementById("hojaPdf").classList.remove("modo-exportacion");
+  elementosAjustadosExportacion.forEach(function(el){
+    el.style.display = "";
+    el.style.borderTop = "";
+    el.style.paddingTop = "";
+  });
+  elementosAjustadosExportacion = [];
+  aplicarModoSegunEstado();
+}
+
 function sincronizarValoresParaClon(clonedDoc){
   var originales = document.querySelectorAll("#hojaPdf input, #hojaPdf textarea");
   var clones = clonedDoc.querySelectorAll("#hojaPdf input, #hojaPdf textarea");
@@ -961,14 +1050,21 @@ function sincronizarValoresParaClon(clonedDoc){
 
 function capturarCanvas(){
   return new Promise(function(resolve){
+    prepararExportacion();
     setTimeout(function(){
       html2canvas(document.getElementById("hojaPdf"), {
         scale:2,
         backgroundColor:"#D9EEF8",
         useCORS:true,
         onclone: sincronizarValoresParaClon
-      }).then(resolve);
-    }, 30);
+      }).then(function(canvas){
+        restaurarExportacion();
+        resolve(canvas);
+      }).catch(function(err){
+        restaurarExportacion();
+        console.warn("Error generando la captura:", err);
+      });
+    }, 60);
   });
 }
 
