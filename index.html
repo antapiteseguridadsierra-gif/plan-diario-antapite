@@ -1685,7 +1685,21 @@ function cerrarModalExito(){
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){
-      navigator.serviceWorker.register("sw.js").catch(function(){});
+      navigator.serviceWorker.register("sw.js").then(function(registro){
+        // Revisa si hay una versión nueva del sw.js cada vez que se abre la página
+        registro.update();
+        // Si ya había un Service Worker esperando, lo activa de una vez
+        if(registro.waiting){ registro.waiting.postMessage({ tipo: "SKIP_WAITING" }); }
+        registro.addEventListener("updatefound", function(){
+          var nuevoSW = registro.installing;
+          nuevoSW.addEventListener("statechange", function(){
+            if(nuevoSW.state === "installed" && navigator.serviceWorker.controller){
+              // Hay una versión nueva lista: recarga sola la página una vez
+              window.location.reload();
+            }
+          });
+        });
+      }).catch(function(){});
     });
   }
 })();
