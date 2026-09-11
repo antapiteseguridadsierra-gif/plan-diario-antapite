@@ -1,64 +1,63 @@
-/**
- * PLAN DIARIO · SIERRA ANTAPITE — Service Worker
- * Permite abrir y llenar el formulario aunque no haya internet.
- * La PRIMERA vez que se abre el link necesita conexión (para
- * guardar esta "copia" en el dispositivo); después de eso,
- * abre sin internet con normalidad.
- *
- * Este archivo debe subirse a GitHub junto a index.html, en la
- * misma carpeta (la raíz del repositorio).
- */
+/* ===========================================================
+   Service Worker — Plan Diario Sierra Antapite
+   -----------------------------------------------------------
+   CADA VEZ que subas un cambio al HTML (o a este mismo archivo),
+   sube también el número de CACHE_VERSION de aquí abajo.
+   Eso es lo único que hace que GitHub Pages "se entere" del
+   cambio y reemplace lo que tenía guardado.
+   =========================================================== */
+const CACHE_VERSION = "v3";                 // <-- sube este número en cada actualización
+const CACHE_NAME = "plan-antapite-" + CACHE_VERSION;
 
-var CACHE_NAME = "plan-diario-antapite-v1";
-var ARCHIVOS_BASE = [
+const ARCHIVOS_PARA_OFFLINE = [
   "./",
   "./index.html",
-  "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+  // agrega aquí otros archivos propios que uses (css, íconos, etc.)
 ];
 
-self.addEventListener("install", function(event){
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache){
-      return cache.addAll(ARCHIVOS_BASE);
-    })
-  );
+/* Al instalar la nueva versión, la descarga en su propio caché
+   (sin tocar la versión vieja todavía) y se activa de inmediato,
+   sin esperar a que se cierren todas las pestañas abiertas */
+self.addEventListener("install", (evento) => {
   self.skipWaiting();
+  evento.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ARCHIVOS_PARA_OFFLINE))
+  );
 });
 
-self.addEventListener("activate", function(event){
-  event.waitUntil(
-    caches.keys().then(function(claves){
-      return Promise.all(
-        claves.filter(function(clave){ return clave !== CACHE_NAME; })
-              .map(function(clave){ return caches.delete(clave); })
-      );
-    })
+/* Al activarse, borra cualquier caché de una versión anterior y
+   toma control de las pestañas ya abiertas sin recargar manual */
+self.addEventListener("activate", (evento) => {
+  evento.waitUntil(
+    caches.keys().then((nombres) =>
+      Promise.all(
+        nombres
+          .filter((nombre) => nombre !== CACHE_NAME)
+          .map((nombre) => caches.delete(nombre))
+      )
+    )
   );
   self.clients.claim();
 });
 
-self.addEventListener("fetch", function(event){
-  // Las llamadas al backend (Google Apps Script) siempre van a la red:
-  // nunca queremos servir una respuesta vieja de la "base de datos".
-  if(event.request.url.indexOf("script.google.com") !== -1){
-    return;
-  }
+/* Estrategia "network first" para el HTML: SIEMPRE intenta traer
+   la versión más nueva de internet primero. Si hay internet, ves
+   el cambio al instante. Si NO hay internet (o falla la red),
+   usa la copia guardada — ahí es donde funciona offline. */
+self.addEventListener("fetch", (evento) => {
+  const peticion = evento.request;
 
-  event.respondWith(
-    caches.match(event.request).then(function(enCache){
-      if(enCache) return enCache;
-      return fetch(event.request).then(function(respuesta){
-        if(respuesta && respuesta.status === 200 && event.request.method === "GET"){
-          var copia = respuesta.clone();
-          caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copia); });
-        }
-        return respuesta;
-      }).catch(function(){
-        if(event.request.mode === "navigate"){
-          return caches.match("./index.html");
-        }
-      });
-    })
+  evento.respondWith(
+    fetch(peticion)
+      .then((respuestaRed) => {
+        // Guarda la respuesta fresca en el caché de esta versión
+        const copia = respuestaRed.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(peticion, copia));
+        return respuestaRed;
+      })
+      .catch(() => {
+        // Sin internet: devuelve lo que haya guardado
+        return caches.match(peticion);
+      })
   );
 });
