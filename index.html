@@ -153,6 +153,59 @@
   .field-inline input[type="date"]{ color-scheme:dark; }
   .field-inline input:focus{ outline:none; }
   .field-inline:focus-within{ background:rgba(255,255,255,.06); }
+  .field-inline select{
+    border:none; background:transparent; padding:2px 0; font-size:15px; font-weight:700;
+    width:100%; color:#fff; appearance:none; -webkit-appearance:none; cursor:pointer;
+  }
+  .field-inline select option{ color:#122534; }
+
+  /* ---------- Asistente por pasos ---------- */
+  .wizard-nav{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    background:rgba(255,255,255,.7); border-bottom:1px solid rgba(27,42,52,.1);
+    padding:12px 26px;
+  }
+  .wizard-info{ display:flex; flex-direction:column; gap:1px; margin-right:auto; }
+  .wizard-paso-actual{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--amber-deep); font-weight:800; }
+  .wizard-paso-titulo{ font-size:15px; font-weight:700; color:var(--ink); }
+  .wizard-puntos{ display:flex; gap:7px; }
+  .wizard-punto{
+    width:9px; height:9px; border-radius:50%; border:none; padding:0; cursor:pointer;
+    background:var(--line);
+  }
+  .wizard-punto.activo{ background:var(--amber); width:22px; border-radius:5px; }
+  .wizard-punto.completo{ background:var(--slate); }
+  .wizard-botones{ display:flex; gap:8px; }
+  .wizard-botones .btn{ padding:8px 14px; font-size:13.5px; }
+  #btnPasoAtras:disabled{ opacity:.35; }
+  #btnPasoSiguiente.es-final{ background:linear-gradient(135deg,var(--sage),#4C6B2E); }
+
+  .paso{ display:none; }
+  .paso.activo{ display:block; }
+  /* Al exportar (PDF/foto) siempre se ven todos los pasos juntos,
+     en una sola hoja ordenada, sin importar en qué paso quedó
+     el formulario */
+  #hojaPdf.modo-exportacion .paso{ display:block !important; }
+  #hojaPdf.modo-exportacion .col-left,
+  #hojaPdf.modo-exportacion .col-right{ display:block !important; }
+  #hojaPdf.modo-exportacion #wizardNav{ display:none !important; }
+
+  /* ---------- Sugerencias (chips) ---------- */
+  .chips-sugerencia{ display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+  .chips-sugerencia:empty{ display:none; }
+  .chip-sugerida{
+    border:1px dashed rgba(46,90,120,.4); background:rgba(46,90,120,.05); color:var(--slate);
+    border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+  }
+  .chip-sugerida::before{ content:"💡"; font-size:11px; }
+  .chip-sugerida:hover{ background:rgba(46,90,120,.12); border-color:var(--slate); }
+  .chip-sugerida.chip-personal{ border-color:rgba(204,138,46,.5); background:rgba(204,138,46,.07); color:var(--amber-deep); }
+  .chip-sugerida.chip-personal::before{ content:"🕓"; }
+
+  .hora-fila .chip-hora{
+    grid-column:3; margin:2px 0 4px 10px; display:flex; flex-wrap:wrap; gap:6px;
+  }
 
   /* ---------- Hoja ---------- */
   .sheet{
@@ -376,62 +429,99 @@
           <input type="text" id="campoNombre" placeholder="Nombre completo">
         </div>
         <div class="field-inline">
+          <label for="campoCargo">Cargo</label>
+          <select id="campoCargo">
+            <option value="">— elegir —</option>
+            <option value="salud">Salud</option>
+            <option value="ing_seguridad">Ingeniero de Seguridad</option>
+            <option value="gerente_seguridad">Gerente de Seguridad</option>
+            <option value="ing_jr_seguridad">Ing. Jr. de Seguridad</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="field-inline">
           <label for="campoFecha">Fecha</label>
           <input type="date" id="campoFecha">
         </div>
       </div>
     </header>
 
+    <div class="wizard-nav" id="wizardNav">
+      <div class="wizard-info">
+        <span class="wizard-paso-actual" id="wizardPasoTexto">Paso 1 de 3</span>
+        <span class="wizard-paso-titulo" id="wizardTituloTexto">Frase y gratitud</span>
+      </div>
+      <div class="wizard-puntos">
+        <button type="button" class="wizard-punto" data-ir="1" onclick="irAPaso(1)"></button>
+        <button type="button" class="wizard-punto" data-ir="2" onclick="irAPaso(2)"></button>
+        <button type="button" class="wizard-punto" data-ir="3" onclick="irAPaso(3)"></button>
+      </div>
+      <div class="wizard-botones">
+        <button type="button" class="btn btn-outline" id="btnPasoAtras" onclick="irAPaso(pasoActual-1)">‹ Atrás</button>
+        <button type="button" class="btn btn-primario" id="btnPasoSiguiente" onclick="irAPaso(pasoActual+1)">Siguiente ›</button>
+      </div>
+    </div>
+
     <div class="sheet">
       <div class="grid">
 
         <div class="col-left">
-          <section class="block">
-            <h2>Frase del día</h2>
-            <textarea class="frase-input" id="campoFrase" rows="2" placeholder="Estoy enfocado/a y disciplinado/a."></textarea>
-          </section>
+          <div class="paso activo" data-paso="1">
+            <section class="block">
+              <h2>Frase del día</h2>
+              <textarea class="frase-input" id="campoFrase" rows="2" placeholder="Estoy enfocado/a y disciplinado/a."></textarea>
+              <div class="chips-sugerencia" id="chipsFrase"></div>
+            </section>
 
-          <section class="block">
-            <h2>Hoy agradezco por</h2>
-            <input type="text" class="texto-simple" id="campoGratitud" placeholder="El bienestar de mi familia.">
-          </section>
+            <section class="block">
+              <h2>Hoy agradezco por</h2>
+              <input type="text" class="texto-simple" id="campoGratitud" placeholder="El bienestar de mi familia.">
+              <div class="chips-sugerencia" id="chipsGratitud"></div>
+            </section>
+          </div>
 
-          <section class="block">
-            <h2>Prioridades</h2>
-            <div class="progreso"><i id="progresoPrioridades"></i></div>
-            <ul class="lista" id="listaPrioridades"></ul>
-            <div class="agregar-fila">
-              <input type="text" id="nuevaPrioridad" placeholder="Agregar prioridad…">
-              <button type="button" onclick="agregarItem('prioridades')">Añadir</button>
-            </div>
-          </section>
+          <div class="paso" data-paso="2">
+            <section class="block">
+              <h2>Prioridades</h2>
+              <div class="progreso"><i id="progresoPrioridades"></i></div>
+              <ul class="lista" id="listaPrioridades"></ul>
+              <div class="chips-sugerencia" id="chipsPrioridades"></div>
+              <div class="agregar-fila">
+                <input type="text" id="nuevaPrioridad" placeholder="Agregar prioridad…">
+                <button type="button" onclick="agregarItem('prioridades')">Añadir</button>
+              </div>
+            </section>
 
-          <section class="block">
-            <h2>Por hacer</h2>
-            <ul class="lista" id="listaPorHacer"></ul>
-            <div class="agregar-fila">
-              <input type="text" id="nuevoPorHacer" placeholder="Agregar tarea…">
-              <button type="button" onclick="agregarItem('porHacer')">Añadir</button>
-            </div>
-          </section>
+            <section class="block">
+              <h2>Por hacer</h2>
+              <ul class="lista" id="listaPorHacer"></ul>
+              <div class="chips-sugerencia" id="chipsPorHacer"></div>
+              <div class="agregar-fila">
+                <input type="text" id="nuevoPorHacer" placeholder="Agregar tarea…">
+                <button type="button" onclick="agregarItem('porHacer')">Añadir</button>
+              </div>
+            </section>
 
-          <section class="block">
-            <h2>Vasos de agua</h2>
-            <div class="agua-fila" id="filaAgua"></div>
-            <div class="agua-txt" id="aguaTexto"></div>
-          </section>
+            <section class="block">
+              <h2>Vasos de agua</h2>
+              <div class="agua-fila" id="filaAgua"></div>
+              <div class="agua-txt" id="aguaTexto"></div>
+            </section>
 
-          <section class="block">
-            <h2>Notas</h2>
-            <textarea class="notas" id="campoNotas" placeholder="Anotaciones del día…"></textarea>
-          </section>
+            <section class="block">
+              <h2>Notas</h2>
+              <textarea class="notas" id="campoNotas" placeholder="Anotaciones del día…"></textarea>
+            </section>
+          </div>
         </div>
 
         <div class="col-right">
-          <section class="block" style="padding-top:0;border-top:none;">
-            <h2>Horario <span id="horarioContador" style="font-weight:400;color:var(--ink-soft);font-size:12.5px;letter-spacing:0;"></span></h2>
-            <div class="horario-lista" id="listaHorario"></div>
-          </section>
+          <div class="paso" data-paso="3">
+            <section class="block" style="padding-top:0;border-top:none;">
+              <h2>Horario <span id="horarioContador" style="font-weight:400;color:var(--ink-soft);font-size:12.5px;letter-spacing:0;"></span></h2>
+              <div class="horario-lista" id="listaHorario"></div>
+            </section>
+          </div>
         </div>
 
       </div>
@@ -517,6 +607,247 @@ function formatoFechaHora(iso){
 }
 
 /* ---------------------------------------------------------
+   Asistente por pasos — divide el formulario en 3 pantallas
+   (Frase/gratitud → Prioridades/tareas/notas → Horario) para
+   que se llene rápido y sin titubear. Al exportar en PDF/imagen
+   siempre se ven los 3 pasos juntos, en una sola hoja.
+--------------------------------------------------------- */
+var pasoActual = 1;
+var TOTAL_PASOS = 3;
+var TITULOS_PASO = { 1:"Frase y gratitud", 2:"Prioridades, tareas y notas", 3:"Horario del día" };
+
+function irAPaso(n){
+  if(n < 1) n = 1;
+  if(n > TOTAL_PASOS) n = TOTAL_PASOS;
+  pasoActual = n;
+  document.querySelectorAll(".paso").forEach(function(p){
+    p.classList.toggle("activo", p.dataset.paso === String(n));
+  });
+  var colIzq = document.querySelector(".col-left");
+  var colDer = document.querySelector(".col-right");
+  if(colIzq) colIzq.style.display = (n === 3) ? "none" : "";
+  if(colDer) colDer.style.display = (n === 3) ? "" : "none";
+  actualizarNavWizard();
+  var sheetEl = document.querySelector(".sheet");
+  if(sheetEl) sheetEl.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+function actualizarNavWizard(){
+  var txtPaso = document.getElementById("wizardPasoTexto");
+  var txtTitulo = document.getElementById("wizardTituloTexto");
+  if(!txtPaso) return;
+  txtPaso.textContent = "Paso " + pasoActual + " de " + TOTAL_PASOS;
+  txtTitulo.textContent = TITULOS_PASO[pasoActual];
+  document.querySelectorAll(".wizard-punto").forEach(function(p){
+    var n = parseInt(p.getAttribute("data-ir"), 10);
+    p.classList.toggle("activo", n === pasoActual);
+    p.classList.toggle("completo", n < pasoActual);
+  });
+  document.getElementById("btnPasoAtras").disabled = (pasoActual === 1);
+  document.getElementById("btnPasoSiguiente").disabled = (pasoActual === TOTAL_PASOS);
+}
+
+/* ---------------------------------------------------------
+   Sugerencias — frases, tareas y horario. Funcionan siempre
+   (son datos locales, no dependen de conexión a internet) y
+   además "aprenden": cada colaborador va guardando en su propio
+   navegador lo que escribió, y esos textos se le sugieren primero
+   la próxima vez, antes que las sugerencias genéricas.
+--------------------------------------------------------- */
+var FRASES_SUGERIDAS = [
+  "Hoy avanzo con calma y constancia",
+  "Estoy enfocado/a y disciplinado/a",
+  "Hoy trabajo con seguridad y responsabilidad",
+  "Doy lo mejor de mí en cada tarea",
+  "Hoy priorizo la seguridad ante todo"
+];
+var GRATITUD_SUGERIDAS = [
+  "La salud y la oportunidad de empezar de nuevo",
+  "El apoyo de mi equipo de trabajo",
+  "El bienestar de mi familia",
+  "Un día más para seguir aprendiendo"
+];
+var TAREAS_SUGERIDAS = {
+  prioridades: [
+    "Inspección de frentes de trabajo",
+    "Revisión de indicadores de seguridad",
+    "Charla de 5 minutos",
+    "Reunión con jefes de turno",
+    "Seguimiento de observaciones (AST)"
+  ],
+  porHacer: [
+    "Actualizar base de datos",
+    "Enviar reporte del día",
+    "Coordinar con el área de SSO",
+    "Revisar checklist de equipos"
+  ]
+};
+/* Horario sugerido según el cargo. Es un punto de partida — en la
+   práctica, lo que cada colaborador va escribiendo se aprende y se
+   le sugiere primero (ver leerHistorialPersonal). */
+var ROLE_HORARIO = {
+  "": { 5:"Desayuno", 12:"Almuerzo", 20:"Descanso" },
+  salud: {
+    5:"Desayuno", 6:"Revisión de indicadores de salud", 7:"Ronda de tópico",
+    8:"Charla de 5 minutos - salud ocupacional", 12:"Almuerzo", 13:"Atención en tópico",
+    17:"Cierre de atenciones del día", 20:"Descanso"
+  },
+  ing_seguridad: {
+    5:"Desayuno", 6:"Verificación de correos", 7:"Charla de seguridad / IPERC",
+    8:"Inspección de frentes de trabajo", 12:"Almuerzo", 13:"Seguimiento de observaciones (AST)",
+    16:"Reporte de indicadores de seguridad", 19:"Cena", 20:"Descanso"
+  },
+  gerente_seguridad: {
+    5:"Desayuno", 7:"Reunión con jefes de área", 8:"Revisión de indicadores SSO",
+    12:"Almuerzo", 14:"Reunión con gerencia", 17:"Revisión de reportes pendientes", 20:"Descanso"
+  },
+  ing_jr_seguridad: {
+    5:"Desayuno", 6:"Verificación de correos", 7:"Acompañamiento en campo",
+    8:"Apoyo en checklist e inspecciones", 12:"Almuerzo", 13:"Actualización de base de datos",
+    17:"Apoyo en cierre de reportes", 20:"Descanso"
+  },
+  otro: { 5:"Desayuno", 12:"Almuerzo", 20:"Descanso" }
+};
+
+function claveHistorialPersonal(nombreClave){ return "plan-antapite:historial:" + nombreClave; }
+function leerHistorialPersonal(nombreClave){
+  if(!nombreClave) return {};
+  try{ return JSON.parse(localStorage.getItem(claveHistorialPersonal(nombreClave)) || "{}"); }
+  catch(err){ return {}; }
+}
+function agregarUnico(lista, texto){
+  lista = (lista || []).slice();
+  texto = (texto || "").trim();
+  if(!texto) return lista;
+  lista = lista.filter(function(t){ return t !== texto; });
+  lista.unshift(texto);
+  return lista.slice(0,3);
+}
+function agregarUnicoLista(lista, items){
+  lista = (lista || []).slice();
+  (items || []).forEach(function(item){
+    if(item.texto && item.texto.trim()){ lista = agregarUnico(lista, item.texto); }
+  });
+  return lista;
+}
+function actualizarHistorialPersonal(){
+  var nombreClave = normalizarNombreLocal(state.nombre);
+  if(!nombreClave) return;
+  var historial = leerHistorialPersonal(nombreClave);
+  historial.frase = agregarUnico(historial.frase, state.frase);
+  historial.gratitud = agregarUnico(historial.gratitud, state.gratitud);
+  historial.tareas = historial.tareas || {};
+  historial.tareas.prioridades = agregarUnicoLista(historial.tareas.prioridades, state.prioridades);
+  historial.tareas.porHacer = agregarUnicoLista(historial.tareas.porHacer, state.porHacer);
+  historial.horario = historial.horario || {};
+  state.horario.forEach(function(fila){
+    if(fila.texto && fila.texto.trim()){
+      historial.horario[fila.hora24] = agregarUnico(historial.horario[fila.hora24], fila.texto);
+    }
+  });
+  localStorage.setItem(claveHistorialPersonal(nombreClave), JSON.stringify(historial));
+}
+
+function claveCargo(nombreClave){ return "plan-antapite:cargo:" + nombreClave; }
+function leerCargoGuardado(nombreClave){
+  return (nombreClave && localStorage.getItem(claveCargo(nombreClave))) || "";
+}
+function guardarCargoActual(){
+  var nombreClave = normalizarNombreLocal(state.nombre);
+  if(!nombreClave) return;
+  localStorage.setItem(claveCargo(nombreClave), document.getElementById("campoCargo").value);
+}
+
+function renderChips(containerId, opciones, onPick){
+  var cont = document.getElementById(containerId);
+  if(!cont) return;
+  cont.innerHTML = "";
+  opciones.slice(0,5).forEach(function(op){
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip-sugerida" + (op.personal ? " chip-personal" : "");
+    chip.textContent = op.texto;
+    chip.addEventListener("click", function(){ onPick(op.texto); });
+    cont.appendChild(chip);
+  });
+}
+
+function renderSugerenciasFrase(){
+  var personal = leerHistorialPersonal(normalizarNombreLocal(state.nombre));
+  var propias = (personal.frase || []).map(function(t){ return { texto:t, personal:true }; });
+  var generico = FRASES_SUGERIDAS
+    .filter(function(f){ return !propias.some(function(p){ return p.texto === f; }); })
+    .map(function(t){ return { texto:t, personal:false }; });
+  renderChips("chipsFrase", propias.concat(generico), function(texto){
+    document.getElementById("campoFrase").value = texto;
+    state.frase = texto;
+  });
+}
+function renderSugerenciasGratitud(){
+  var personal = leerHistorialPersonal(normalizarNombreLocal(state.nombre));
+  var propias = (personal.gratitud || []).map(function(t){ return { texto:t, personal:true }; });
+  var generico = GRATITUD_SUGERIDAS
+    .filter(function(f){ return !propias.some(function(p){ return p.texto === f; }); })
+    .map(function(t){ return { texto:t, personal:false }; });
+  renderChips("chipsGratitud", propias.concat(generico), function(texto){
+    document.getElementById("campoGratitud").value = texto;
+    state.gratitud = texto;
+  });
+}
+function renderSugerenciasTareas(clave){
+  var contId = clave === "prioridades" ? "chipsPrioridades" : "chipsPorHacer";
+  var personal = leerHistorialPersonal(normalizarNombreLocal(state.nombre));
+  var propiasRaw = (personal.tareas && personal.tareas[clave]) ? personal.tareas[clave] : [];
+  var propias = propiasRaw.map(function(t){ return { texto:t, personal:true }; });
+  var genericoRaw = TAREAS_SUGERIDAS[clave] || [];
+  var generico = genericoRaw
+    .filter(function(f){ return !propias.some(function(p){ return p.texto === f; }); })
+    .map(function(t){ return { texto:t, personal:false }; });
+  renderChips(contId, propias.concat(generico), function(texto){
+    state[clave].push({ id: uid(), texto: texto, hecho:false });
+    renderLista(clave);
+    renderProgreso();
+    renderSugerenciasTareas(clave);
+  });
+}
+function obtenerSugerenciasHorario(hora24, cargo, nombreClave){
+  var resultado = [];
+  var personal = leerHistorialPersonal(nombreClave);
+  var personales = (personal.horario && personal.horario[hora24]) ? personal.horario[hora24] : [];
+  if(personales[0]) resultado.push({ texto: personales[0], personal:true });
+  var rolDef = (ROLE_HORARIO[cargo] && ROLE_HORARIO[cargo][hora24]) || null;
+  if(rolDef && !resultado.some(function(r){ return r.texto === rolDef; })){
+    resultado.push({ texto: rolDef, personal:false });
+  }
+  return resultado.slice(0,2);
+}
+function renderChipsHora(filaDiv, fila, cargo, nombreClave){
+  var existente = filaDiv.querySelector(".chip-hora");
+  if(existente) existente.remove();
+  if(fila.texto.trim()) return;
+  var sugerencias = obtenerSugerenciasHorario(fila.hora24, cargo, nombreClave);
+  if(!sugerencias.length) return;
+  var cont = document.createElement("div");
+  cont.className = "chip-hora";
+  sugerencias.forEach(function(s){
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip-sugerida" + (s.personal ? " chip-personal" : "");
+    chip.textContent = s.texto;
+    chip.addEventListener("click", function(){
+      fila.texto = s.texto;
+      var input = filaDiv.querySelector("input");
+      if(input) input.value = s.texto;
+      actualizarClaseFila(filaDiv, fila, new Date().getHours());
+      renderContadorHorario();
+      renderChipsHora(filaDiv, fila, cargo, nombreClave);
+    });
+    cont.appendChild(chip);
+  });
+  filaDiv.appendChild(cont);
+}
+
+/* ---------------------------------------------------------
    Render
 --------------------------------------------------------- */
 function renderTodo(){
@@ -526,13 +857,19 @@ function renderTodo(){
   document.getElementById("campoGratitud").value = state.gratitud;
   document.getElementById("campoNotas").value = state.notas;
   document.getElementById("firmaNombre").textContent = state.nombre || "—";
+  document.getElementById("campoCargo").value = leerCargoGuardado(normalizarNombreLocal(state.nombre));
 
   renderLista("prioridades");
   renderLista("porHacer");
   renderAgua();
   renderHorario();
   renderProgreso();
+  renderSugerenciasFrase();
+  renderSugerenciasGratitud();
+  renderSugerenciasTareas("prioridades");
+  renderSugerenciasTareas("porHacer");
   aplicarModoSegunEstado();
+  irAPaso(1);
 }
 
 function renderLista(clave){
@@ -620,6 +957,8 @@ function renderHorario(){
   var cont = document.getElementById("listaHorario");
   cont.innerHTML = "";
   var horaActual = new Date().getHours();
+  var cargoActual = document.getElementById("campoCargo") ? document.getElementById("campoCargo").value : "";
+  var nombreClave = normalizarNombreLocal(state.nombre);
 
   state.horario.forEach(function(fila){
     var div = document.createElement("div");
@@ -643,6 +982,7 @@ function renderHorario(){
       fila.texto = input.value;
       actualizarClaseFila(div, fila, new Date().getHours());
       renderContadorHorario();
+      renderChipsHora(div, fila, cargoActual, nombreClave);
     });
 
     var limpiar = document.createElement("button");
@@ -655,12 +995,15 @@ function renderHorario(){
       input.value = "";
       actualizarClaseFila(div, fila, new Date().getHours());
       renderContadorHorario();
+      renderChipsHora(div, fila, cargoActual, nombreClave);
       input.focus();
     });
 
     wrap.appendChild(input); wrap.appendChild(limpiar);
     div.appendChild(etiqueta); div.appendChild(punto); div.appendChild(wrap);
     cont.appendChild(div);
+
+    renderChipsHora(div, fila, cargoActual, nombreClave);
   });
 
   renderContadorHorario();
@@ -683,8 +1026,8 @@ function renderContadorHorario(){
 function aplicarModoSegunEstado(){
   var bloqueado = !modoEdicion;
 
-  document.querySelectorAll("#hojaPdf input, #hojaPdf textarea").forEach(function(el){ el.disabled = bloqueado; });
-  document.querySelectorAll("#hojaPdf .borrar, #hojaPdf .agregar-fila").forEach(function(el){ el.style.display = bloqueado ? "none" : ""; });
+  document.querySelectorAll("#hojaPdf input, #hojaPdf textarea, #hojaPdf select").forEach(function(el){ el.disabled = bloqueado; });
+  document.querySelectorAll("#hojaPdf .borrar, #hojaPdf .agregar-fila, #hojaPdf .chips-sugerencia, #hojaPdf .chip-hora").forEach(function(el){ el.style.display = bloqueado ? "none" : ""; });
   document.querySelectorAll("#hojaPdf .vaso").forEach(function(el){ el.classList.toggle("bloqueado", bloqueado); });
 
   document.getElementById("btnEditar").style.display = bloqueado ? "" : "none";
@@ -720,6 +1063,10 @@ document.getElementById("campoGratitud").addEventListener("input", function(e){ 
 document.getElementById("campoNotas").addEventListener("input", function(e){ state.notas = e.target.value; });
 document.getElementById("campoFecha").addEventListener("change", function(e){
   if(!cargandoDesdeCodigo) cargarRegistroActual();
+});
+document.getElementById("campoCargo").addEventListener("change", function(){
+  guardarCargoActual();
+  renderHorario();
 });
 
 /* ---------------------------------------------------------
@@ -901,6 +1248,7 @@ function guardarEnServidor(){
   document.querySelectorAll(".toolbar-acciones button").forEach(function(b){ b.disabled = true; });
   localStorage.setItem(claveLocal(state.fecha, state.nombre), JSON.stringify(state));
   localStorage.setItem("plan-antapite:ultimo-nombre", state.nombre.trim());
+  actualizarHistorialPersonal();
 
   var promesa;
   if(scriptConfigurado()){
@@ -1072,7 +1420,7 @@ function prepararExportacion(){
   }
 
   // Ocultar controles de edición aunque el formulario esté desbloqueado
-  document.querySelectorAll("#hojaPdf .agregar-fila, #hojaPdf .borrar, #hojaPdf .limpiar-hora").forEach(function(el){
+  document.querySelectorAll("#hojaPdf .agregar-fila, #hojaPdf .borrar, #hojaPdf .limpiar-hora, #hojaPdf .chips-sugerencia, #hojaPdf .chip-hora").forEach(function(el){
     if(el.style.display !== "none"){ el.style.display = "none"; elementosAjustadosExportacion.push(el); }
   });
 
@@ -1183,26 +1531,22 @@ function capturarCanvas(){
 
 function crearPDFDesdeCanvas(canvas){
   var jsPDFLib = window.jspdf.jsPDF;
-  var pdf = new jsPDFLib("p","mm","a4");
-  var pageWidth = pdf.internal.pageSize.getWidth();
-  var pageHeight = pdf.internal.pageSize.getHeight();
-  var imgWidth = pageWidth;
-  var imgHeight = canvas.height * imgWidth / canvas.width;
-  var heightLeft = imgHeight;
-  var position = 0;
-  /* JPEG de calidad alta: misma nitidez visible que PNG a esta
-     resolución, pero un archivo varias veces más liviano — clave
-     para poder compartirlo rápido por WhatsApp o con datos móviles */
-  var imgData = canvas.toDataURL("image/jpeg", 0.93);
+  /* Página a la medida del contenido (no A4 fija): así el plan
+     siempre cabe completo en UNA sola hoja, sin cortar texto ni
+     partir secciones entre páginas, sea corto o largo el día. */
+  var margenMM = 6;
+  var anchoUtilMM = 190;
+  var altoUtilMM = canvas.height * anchoUtilMM / canvas.width;
+  var anchoHojaMM = anchoUtilMM + margenMM * 2;
+  var altoHojaMM = altoUtilMM + margenMM * 2;
 
-  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-  while(heightLeft > 0){
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-  }
+  var pdf = new jsPDFLib({
+    orientation: altoHojaMM >= anchoHojaMM ? "portrait" : "landscape",
+    unit: "mm",
+    format: [anchoHojaMM, altoHojaMM]
+  });
+  var imgData = canvas.toDataURL("image/jpeg", 0.93);
+  pdf.addImage(imgData, "JPEG", margenMM, margenMM, anchoUtilMM, altoUtilMM);
   return pdf;
 }
 
